@@ -1,0 +1,122 @@
+select:
+  - platform: template
+    id: timezone_select
+    name: "Device Timezone"
+    optimistic: True
+    web_server:
+      sorting_weight: 2
+      sorting_group_id: time_group
+    # The on_value lambda is now the brains of the operation
+    on_value:
+      then:
+        - lambda: |-
+            std::string tz_name = x;
+            std::string posix_tz_string = "";
+
+            // --- This block maps friendly names to POSIX TZ strings ---
+            // Note: The number in the POSIX string is the hours WEST of UTC.
+            // So UTC+10 (Sydney) is AEST-10, and UTC-5 (New York) is EST5.
+
+            if (tz_name == "Africa/Cairo") { // EET-2
+              posix_tz_string = "EET-2";
+            } else if (tz_name == "Africa/Johannesburg") { // SAST-2
+              posix_tz_string = "SAST-2";
+            } else if (tz_name == "America/Anchorage") { // AKST9AKDT,M3.2.0,M11.1.0
+              posix_tz_string = "AKST9AKDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Buenos_Aires") { // ART3
+              posix_tz_string = "ART3";
+            } else if (tz_name == "America/Chicago") { // CST6CDT,M3.2.0,M11.1.0
+              posix_tz_string = "CST6CDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Denver") { // MST7MDT,M3.2.0,M11.1.0
+              posix_tz_string = "MST7MDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Halifax") { // AST4ADT,M3.2.0,M11.1.0
+              posix_tz_string = "AST4ADT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Los_Angeles") { // PST8PDT,M3.2.0,M11.1.0
+              posix_tz_string = "PST8PDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/New_York") { // EST5EDT,M3.2.0,M11.1.0
+              posix_tz_string = "EST5EDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Phoenix") { // MST7 (No DST)
+              posix_tz_string = "MST7";
+            } else if (tz_name == "America/Sao_Paulo") { // BRT3BRST,M11.1.0/0,M2.3.0/0
+              posix_tz_string = "BRT3BRST,M11.1.0/0,M2.3.0/0";
+            } else if (tz_name == "Asia/Bangkok") { // ICT-7
+              posix_tz_string = "ICT-7";
+            } else if (tz_name == "Asia/Dubai") { // GST-4
+              posix_tz_string = "GST-4";
+            } else if (tz_name == "Asia/Hong_Kong") { // HKT-8
+              posix_tz_string = "HKT-8";
+            } else if (tz_name == "Asia/Kolkata") { // IST-5:30
+              posix_tz_string = "IST-5:30";
+            } else if (tz_name == "Asia/Seoul") { // KST-9
+              posix_tz_string = "KST-9";
+            } else if (tz_name == "Asia/Shanghai") { // CST-8
+              posix_tz_string = "CST-8";
+            } else if (tz_name == "Asia/Tokyo") { // JST-9
+              posix_tz_string = "JST-9";
+            } else if (tz_name == "Australia/Adelaide") { // <<< NEWLY ADDED
+              // ACST-9:30ACDT,M10.1.0,M4.1.0/3
+              posix_tz_string = "ACST-9:30ACDT,M10.1.0,M4.1.0/3";
+            } else if (tz_name == "Australia/Brisbane") { // AEST-10 (No DST)
+              posix_tz_string = "AEST-10";
+            } else if (tz_name == "Australia/Darwin") { // ACST-9:30 (No DST)
+              posix_tz_string = "ACST-9:30";
+            } else if (tz_name == "Australia/Perth") { // AWST-8
+              posix_tz_string = "AWST-8";
+            } else if (tz_name == "Australia/Sydney") { // AEST-10AEDT,M10.1.0,M4.1.0/3
+              posix_tz_string = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+            } else if (tz_name == "Etc/UTC") { // UTC0
+              posix_tz_string = "UTC0";
+            } else if (tz_name == "Europe/Berlin") { // CET-1CEST,M3.5.0,M10.5.0
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0";
+            } else if (tz_name == "Europe/Helsinki") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/London") { // GMT0BST,M3.5.0/1,M10.5.0
+              posix_tz_string = "GMT0BST,M3.5.0/1,M10.5.0";
+            } else if (tz_name == "Europe/Moscow") { // MSK-3
+              posix_tz_string = "MSK-3";
+            } else if (tz_name == "Pacific/Auckland") { // NZST-12NZDT,M9.5.0,M4.1.0/3
+              posix_tz_string = "NZST-12NZDT,M9.5.0,M4.1.0/3";
+            } else if (tz_name == "Pacific/Honolulu") { // HST10 (No DST)
+              posix_tz_string = "HST10";
+            }
+            // -----------------------------------------------------------
+
+            if (!posix_tz_string.empty()) {
+              ESP_LOGI("on_value", "Setting POSIX TZ String: %s", posix_tz_string.c_str());
+              setenv("TZ", posix_tz_string.c_str(), 1);
+              tzset();
+              // Save the new POSIX string to globals for the next boot
+              id(saved_posix_tz) = posix_tz_string;
+            }
+
+    options:
+      - "Australia/Sydney"
+      - "Africa/Cairo"
+      - "Africa/Johannesburg"
+      - "America/Anchorage"
+      - "America/Buenos_Aires"
+      - "America/Chicago"
+      - "America/Denver"
+      - "America/Halifax"
+      - "America/Los_Angeles"
+      - "America/New_York"
+      - "America/Phoenix"
+      - "America/Sao_Paulo"
+      - "Asia/Bangkok"
+      - "Asia/Dubai"
+      - "Asia/Hong_Kong"
+      - "Asia/Kolkata"
+      - "Asia/Seoul"
+      - "Asia/Shanghai"
+      - "Asia/Tokyo"
+      - "Australia/Adelaide"
+      - "Australia/Brisbane"
+      - "Australia/Darwin"
+      - "Australia/Perth"
+      - "Etc/UTC"
+      - "Europe/Berlin"
+      - "Europe/Helsinki"
+      - "Europe/London"
+      - "Europe/Moscow"
+      - "Pacific/Auckland"
+      - "Pacific/Honolulu"
