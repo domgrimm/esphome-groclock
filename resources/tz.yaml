@@ -17,69 +17,271 @@ select:
             // Note: The number in the POSIX string is the hours WEST of UTC.
             // So UTC+10 (Sydney) is AEST-10, and UTC-5 (New York) is EST5.
 
-            if (tz_name == "Africa/Cairo") { // EET-2
+            if (tz_name == "Australia/Sydney") { // AEST-10AEDT,M10.1.0,M4.1.0/3
+              posix_tz_string = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+            } else if (tz_name == "Africa/Abidjan") { // GMT0
+              posix_tz_string = "GMT0";
+            } else if (tz_name == "Africa/Addis_Ababa") { // EAT-3
+              posix_tz_string = "EAT-3";
+            } else if (tz_name == "Africa/Algiers") { // CET-1
+              posix_tz_string = "CET-1";
+            } else if (tz_name == "Africa/Cairo") { // EET-2
               posix_tz_string = "EET-2";
+            } else if (tz_name == "Africa/Casablanca") { // WET0
+              posix_tz_string = "WET0";
             } else if (tz_name == "Africa/Johannesburg") { // SAST-2
               posix_tz_string = "SAST-2";
+            } else if (tz_name == "Africa/Lagos") { // WAT-1
+              posix_tz_string = "WAT-1";
+            } else if (tz_name == "Africa/Nairobi") { // EAT-3
+              posix_tz_string = "EAT-3";
+            } else if (tz_name == "Africa/Tunis") { // CET-1
+              posix_tz_string = "CET-1";
             } else if (tz_name == "America/Anchorage") { // AKST9AKDT,M3.2.0,M11.1.0
               posix_tz_string = "AKST9AKDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Asuncion") { // PYT3PYST,M11.1.0,M3.2.0
+              posix_tz_string = "PYT3PYST,M11.1.0,M3.2.0";
+            } else if (tz_name == "America/Bogota") { // COT5
+              posix_tz_string = "COT5";
             } else if (tz_name == "America/Buenos_Aires") { // ART3
               posix_tz_string = "ART3";
+            } else if (tz_name == "America/Cancun") { // EST5
+              posix_tz_string = "EST5";
+            } else if (tz_name == "America/Caracas") { // VET4
+              posix_tz_string = "VET4";
             } else if (tz_name == "America/Chicago") { // CST6CDT,M3.2.0,M11.1.0
               posix_tz_string = "CST6CDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Costa_Rica") { // CST6
+              posix_tz_string = "CST6";
             } else if (tz_name == "America/Denver") { // MST7MDT,M3.2.0,M11.1.0
               posix_tz_string = "MST7MDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Guatemala") { // CST6
+              posix_tz_string = "CST6";
             } else if (tz_name == "America/Halifax") { // AST4ADT,M3.2.0,M11.1.0
               posix_tz_string = "AST4ADT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Havana") { // CST5CDT,M3.2.0,M11.1.0
+              posix_tz_string = "CST5CDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/La_Paz") { // BOT4
+              posix_tz_string = "BOT4";
+            } else if (tz_name == "America/Lima") { // PET5
+              posix_tz_string = "PET5";
             } else if (tz_name == "America/Los_Angeles") { // PST8PDT,M3.2.0,M11.1.0
               posix_tz_string = "PST8PDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Mexico_City") { // CST6
+              posix_tz_string = "CST6";
+            } else if (tz_name == "America/Montevideo") { // UYT3UYST,M11.1.0,M3.2.0
+              posix_tz_string = "UYT3UYST,M11.1.0,M3.2.0";
             } else if (tz_name == "America/New_York") { // EST5EDT,M3.2.0,M11.1.0
               posix_tz_string = "EST5EDT,M3.2.0,M11.1.0";
-            } else if (tz_name == "America/Phoenix") { // MST7 (No DST)
+            } else if (tz_name == "America/Panama") { // EST5
+              posix_tz_string = "EST5";
+            } else if (tz_name == "America/Phoenix") { // MST7
               posix_tz_string = "MST7";
+            } else if (tz_name == "America/Puerto_Rico") { // AST4
+              posix_tz_string = "AST4";
+            } else if (tz_name == "America/Santiago") { // CLT4CLST,M8.2.0/4,M5.2.0/3
+              posix_tz_string = "CLT4CLST,M8.2.0/4,M5.2.0/3";
             } else if (tz_name == "America/Sao_Paulo") { // BRT3BRST,M11.1.0/0,M2.3.0/0
               posix_tz_string = "BRT3BRST,M11.1.0/0,M2.3.0/0";
+            } else if (tz_name == "America/Toronto") { // EST5EDT,M3.2.0,M11.1.0
+              posix_tz_string = "EST5EDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Vancouver") { // PST8PDT,M3.2.0,M11.1.0
+              posix_tz_string = "PST8PDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "America/Winnipeg") { // CST6CDT,M3.2.0,M11.1.0
+              posix_tz_string = "CST6CDT,M3.2.0,M11.1.0";
+            } else if (tz_name == "Asia/Almaty") { // ALMT-6
+              posix_tz_string = "ALMT-6";
+            } else if (tz_name == "Asia/Amman") { // EET-2EEST,M3.5.5/0,M10.5.5/1
+              posix_tz_string = "EET-2EEST,M3.5.5/0,M10.5.5/1";
+            } else if (tz_name == "Asia/Baghdad") { // AST-3
+              posix_tz_string = "AST-3";
+            } else if (tz_name == "Asia/Baku") { // AZT-4
+              posix_tz_string = "AZT-4";
             } else if (tz_name == "Asia/Bangkok") { // ICT-7
               posix_tz_string = "ICT-7";
+            } else if (tz_name == "Asia/Beirut") { // EET-2EEST,M3.5.0/0,M10.5.0/0
+              posix_tz_string = "EET-2EEST,M3.5.0/0,M10.5.0/0";
+            } else if (tz_name == "Asia/Bishkek") { // KGT-6
+              posix_tz_string = "KGT-6";
+            } else if (tz_name == "Asia/Colombo") { // IST-5:30
+              posix_tz_string = "IST-5:30";
+            } else if (tz_name == "Asia/Damascus") { // EET-2EEST,M3.5.5/0,M10.5.5/0
+              posix_tz_string = "EET-2EEST,M3.5.5/0,M10.5.5/0";
+            } else if (tz_name == "Asia/Dhaka") { // BST-6
+              posix_tz_string = "BST-6";
             } else if (tz_name == "Asia/Dubai") { // GST-4
               posix_tz_string = "GST-4";
+            } else if (tz_name == "Asia/Dushanbe") { // TJT-5
+              posix_tz_string = "TJT-5";
+            } else if (tz_name == "Asia/Ho_Chi_Minh") { // ICT-7
+              posix_tz_string = "ICT-7";
             } else if (tz_name == "Asia/Hong_Kong") { // HKT-8
               posix_tz_string = "HKT-8";
+            } else if (tz_name == "Asia/Irkutsk") { // IRKT-8
+              posix_tz_string = "IRKT-8";
+            } else if (tz_name == "Asia/Jakarta") { // WIB-7
+              posix_tz_string = "WIB-7";
+            } else if (tz_name == "Asia/Jerusalem") { // IST-2IDT,M3.5.5/1,M10.5.0
+              posix_tz_string = "IST-2IDT,M3.5.5/1,M10.5.0";
+            } else if (tz_name == "Asia/Kabul") { // AFT-4:30
+              posix_tz_string = "AFT-4:30";
+            } else if (tz_name == "Asia/Kamchatka") { // PETT-12
+              posix_tz_string = "PETT-12";
+            } else if (tz_name == "Asia/Karachi") { // PKT-5
+              posix_tz_string = "PKT-5";
+            } else if (tz_name == "Asia/Kathmandu") { // NPT-5:45
+              posix_tz_string = "NPT-5:45";
             } else if (tz_name == "Asia/Kolkata") { // IST-5:30
               posix_tz_string = "IST-5:30";
+            } else if (tz_name == "Asia/Krasnoyarsk") { // KRAT-7
+              posix_tz_string = "KRAT-7";
+            } else if (tz_name == "Asia/Kuala_Lumpur") { // MYT-8
+              posix_tz_string = "MYT-8";
+            } else if (tz_name == "Asia/Kuwait") { // AST-3
+              posix_tz_string = "AST-3";
+            } else if (tz_name == "Asia/Magadan") { // MAGT-11
+              posix_tz_string = "MAGT-11";
+            } else if (tz_name == "Asia/Manila") { // PST-8
+              posix_tz_string = "PST-8";
+            } else if (tz_name == "Asia/Omsk") { // OMST-6
+              posix_tz_string = "OMST-6";
+            } else if (tz_name == "Asia/Pyongyang") { // KST-9
+              posix_tz_string = "KST-9";
+            } else if (tz_name == "Asia/Riyadh") { // AST-3
+              posix_tz_string = "AST-3";
             } else if (tz_name == "Asia/Seoul") { // KST-9
               posix_tz_string = "KST-9";
             } else if (tz_name == "Asia/Shanghai") { // CST-8
               posix_tz_string = "CST-8";
+            } else if (tz_name == "Asia/Singapore") { // SGT-8
+              posix_tz_string = "SGT-8";
+            } else if (tz_name == "Asia/Taipei") { // CST-8
+              posix_tz_string = "CST-8";
+            } else if (tz_name == "Asia/Tashkent") { // UZT-5
+              posix_tz_string = "UZT-5";
+            } else if (tz_name == "Asia/Tbilisi") { // GET-4
+              posix_tz_string = "GET-4";
+            } else if (tz_name == "Asia/Tehran") { // IRST-3:30
+              posix_tz_string = "IRST-3:30";
             } else if (tz_name == "Asia/Tokyo") { // JST-9
               posix_tz_string = "JST-9";
-            } else if (tz_name == "Australia/Adelaide") { // <<< NEWLY ADDED
-              // ACST-9:30ACDT,M10.1.0,M4.1.0/3
+            } else if (tz_name == "Asia/Ulaanbaatar") { // ULAT-8
+              posix_tz_string = "ULAT-8";
+            } else if (tz_name == "Asia/Vladivostok") { // VLAT-10
+              posix_tz_string = "VLAT-10";
+            } else if (tz_name == "Asia/Yakutsk") { // YAKT-9
+              posix_tz_string = "YAKT-9";
+            } else if (tz_name == "Asia/Yangon") { // MMT-6:30
+              posix_tz_string = "MMT-6:30";
+            } else if (tz_name == "Asia/Yekaterinburg") { // YEKT-5
+              posix_tz_string = "YEKT-5";
+            } else if (tz_name == "Asia/Yerevan") { // AMT-4
+              posix_tz_string = "AMT-4";
+            } else if (tz_name == "Atlantic/Azores") { // AZOT1AZOST,M3.5.0/0,M10.5.0/1
+              posix_tz_string = "AZOT1AZOST,M3.5.0/0,M10.5.0/1";
+            } else if (tz_name == "Atlantic/Bermuda") { // AST4ADT,M3.2.0,M11.1.0
+              posix_tz_string = "AST4ADT,M3.2.0,M11.1.0";
+            } else if (tz_name == "Atlantic/Canary") { // WET0WEST,M3.5.0/1,M10.5.0
+              posix_tz_string = "WET0WEST,M3.5.0/1,M10.5.0";
+            } else if (tz_name == "Atlantic/Cape_Verde") { // CVT1
+              posix_tz_string = "CVT1";
+            } else if (tz_name == "Atlantic/Reykjavik") { // GMT0
+              posix_tz_string = "GMT0";
+            } else if (tz_name == "Australia/Adelaide") { // ACST-9:30ACDT,M10.1.0,M4.1.0/3
               posix_tz_string = "ACST-9:30ACDT,M10.1.0,M4.1.0/3";
-            } else if (tz_name == "Australia/Brisbane") { // AEST-10 (No DST)
+            } else if (tz_name == "Australia/Brisbane") { // AEST-10
               posix_tz_string = "AEST-10";
-            } else if (tz_name == "Australia/Darwin") { // ACST-9:30 (No DST)
+            } else if (tz_name == "Australia/Darwin") { // ACST-9:30
               posix_tz_string = "ACST-9:30";
+            } else if (tz_name == "Australia/Hobart") { // AEST-10AEDT,M10.1.0,M4.1.0/3
+              posix_tz_string = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+            } else if (tz_name == "Australia/Melbourne") { // AEST-10AEDT,M10.1.0,M4.1.0/3
+              posix_tz_string = "AEST-10AEDT,M10.1.0,M4.1.0/3";
             } else if (tz_name == "Australia/Perth") { // AWST-8
               posix_tz_string = "AWST-8";
-            } else if (tz_name == "Australia/Sydney") { // AEST-10AEDT,M10.1.0,M4.1.0/3
-              posix_tz_string = "AEST-10AEDT,M10.1.0,M4.1.0/3";
             } else if (tz_name == "Etc/UTC") { // UTC0
               posix_tz_string = "UTC0";
-            } else if (tz_name == "Europe/Berlin") { // CET-1CEST,M3.5.0,M10.5.0
-              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0";
+            } else if (tz_name == "Europe/Amsterdam") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Athens") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Berlin") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Brussels") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Bucharest") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Budapest") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Copenhagen") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Dublin") { // GMT0IST,M3.5.0/1,M10.5.0
+              posix_tz_string = "GMT0IST,M3.5.0/1,M10.5.0";
             } else if (tz_name == "Europe/Helsinki") { // EET-2EEST,M3.5.0/3,M10.5.0/4
               posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Istanbul") { // TRT-3
+              posix_tz_string = "TRT-3";
+            } else if (tz_name == "Europe/Kyiv") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Lisbon") { // WET0WEST,M3.5.0/1,M10.5.0
+              posix_tz_string = "WET0WEST,M3.5.0/1,M10.5.0";
             } else if (tz_name == "Europe/London") { // GMT0BST,M3.5.0/1,M10.5.0
               posix_tz_string = "GMT0BST,M3.5.0/1,M10.5.0";
+            } else if (tz_name == "Europe/Madrid") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Minsk") { // MSK-3
+              posix_tz_string = "MSK-3";
             } else if (tz_name == "Europe/Moscow") { // MSK-3
               posix_tz_string = "MSK-3";
+            } else if (tz_name == "Europe/Oslo") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Paris") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Prague") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Riga") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Rome") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Sofia") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Stockholm") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Tallinn") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Vienna") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Vilnius") { // EET-2EEST,M3.5.0/3,M10.5.0/4
+              posix_tz_string = "EET-2EEST,M3.5.0/3,M10.5.0/4";
+            } else if (tz_name == "Europe/Warsaw") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
+            } else if (tz_name == "Europe/Zurich") { // CET-1CEST,M3.5.0,M10.5.0/3
+              posix_tz_string = "CET-1CEST,M3.5.0,M10.5.0/3";
             } else if (tz_name == "Pacific/Auckland") { // NZST-12NZDT,M9.5.0,M4.1.0/3
               posix_tz_string = "NZST-12NZDT,M9.5.0,M4.1.0/3";
-            } else if (tz_name == "Pacific/Honolulu") { // HST10 (No DST)
+            } else if (tz_name == "Pacific/Chatham") { // CHAST-12:45CHADT,M9.5.0/2:45,M4.1.0/3:45
+              posix_tz_string = "CHAST-12:45CHADT,M9.5.0/2:45,M4.1.0/3:45";
+            } else if (tz_name == "Pacific/Fiji") { // FJT-12FJST,M11.2.0,M1.2.3
+              posix_tz_string = "FJT-12FJST,M11.2.0,M1.2.3";
+            } else if (tz_name == "Pacific/Guam") { // ChST-10
+              posix_tz_string = "ChST-10";
+            } else if (tz_name == "Pacific/Honolulu") { // HST10
               posix_tz_string = "HST10";
+            } else if (tz_name == "Pacific/Majuro") { // MHT-12
+              posix_tz_string = "MHT-12";
+            } else if (tz_name == "Pacific/Midway") { // SST11
+              posix_tz_string = "SST11";
+            } else if (tz_name == "Pacific/Noumea") { // NCT-11
+              posix_tz_string = "NCT-11";
+            } else if (tz_name == "Pacific/Port_Moresby") { // PGT-10
+              posix_tz_string = "PGT-10";
+            } else if (tz_name == "Pacific/Tahiti") { // TAHT10
+              posix_tz_string = "TAHT10";
+            } else if (tz_name == "Pacific/Wake") { // WAKT-12
+              posix_tz_string = "WAKT-12";
             }
             // -----------------------------------------------------------
+
 
             if (!posix_tz_string.empty()) {
               ESP_LOGI("on_value", "Setting POSIX TZ String: %s", posix_tz_string.c_str());
@@ -91,32 +293,133 @@ select:
 
     options:
       - "Australia/Sydney"
+      - "Africa/Abidjan"
+      - "Africa/Addis_Ababa"
+      - "Africa/Algiers"
       - "Africa/Cairo"
+      - "Africa/Casablanca"
       - "Africa/Johannesburg"
+      - "Africa/Lagos"
+      - "Africa/Nairobi"
+      - "Africa/Tunis"
       - "America/Anchorage"
+      - "America/Asuncion"
+      - "America/Bogota"
       - "America/Buenos_Aires"
+      - "America/Cancun"
+      - "America/Caracas"
       - "America/Chicago"
+      - "America/Costa_Rica"
       - "America/Denver"
+      - "America/Guatemala"
       - "America/Halifax"
+      - "America/Havana"
+      - "America/La_Paz"
+      - "America/Lima"
       - "America/Los_Angeles"
+      - "America/Mexico_City"
+      - "America/Montevideo"
       - "America/New_York"
+      - "America/Panama"
       - "America/Phoenix"
+      - "America/Puerto_Rico"
+      - "America/Santiago"
       - "America/Sao_Paulo"
+      - "America/Toronto"
+      - "America/Vancouver"
+      - "America/Winnipeg"
+      - "Asia/Almaty"
+      - "Asia/Amman"
+      - "Asia/Baghdad"
+      - "Asia/Baku"
       - "Asia/Bangkok"
+      - "Asia/Beirut"
+      - "Asia/Bishkek"
+      - "Asia/Colombo"
+      - "Asia/Damascus"
+      - "Asia/Dhaka"
       - "Asia/Dubai"
+      - "Asia/Dushanbe"
+      - "Asia/Ho_Chi_Minh"
       - "Asia/Hong_Kong"
+      - "Asia/Irkutsk"
+      - "Asia/Jakarta"
+      - "Asia/Jerusalem"
+      - "Asia/Kabul"
+      - "Asia/Kamchatka"
+      - "Asia/Karachi"
+      - "Asia/Kathmandu"
       - "Asia/Kolkata"
+      - "Asia/Krasnoyarsk"
+      - "Asia/Kuala_Lumpur"
+      - "Asia/Kuwait"
+      - "Asia/Magadan"
+      - "Asia/Manila"
+      - "Asia/Omsk"
+      - "Asia/Pyongyang"
+      - "Asia/Riyadh"
       - "Asia/Seoul"
       - "Asia/Shanghai"
+      - "Asia/Singapore"
+      - "Asia/Taipei"
+      - "Asia/Tashkent"
+      - "Asia/Tbilisi"
+      - "Asia/Tehran"
       - "Asia/Tokyo"
+      - "Asia/Ulaanbaatar"
+      - "Asia/Vladivostok"
+      - "Asia/Yakutsk"
+      - "Asia/Yangon"
+      - "Asia/Yekaterinburg"
+      - "Asia/Yerevan"
+      - "Atlantic/Azores"
+      - "Atlantic/Bermuda"
+      - "Atlantic/Canary"
+      - "Atlantic/Cape_Verde"
+      - "Atlantic/Reykjavik"
       - "Australia/Adelaide"
       - "Australia/Brisbane"
       - "Australia/Darwin"
+      - "Australia/Hobart"
+      - "Australia/Melbourne"
       - "Australia/Perth"
       - "Etc/UTC"
+      - "Europe/Amsterdam"
+      - "Europe/Athens"
       - "Europe/Berlin"
+      - "Europe/Brussels"
+      - "Europe/Bucharest"
+      - "Europe/Budapest"
+      - "Europe/Copenhagen"
+      - "Europe/Dublin"
       - "Europe/Helsinki"
+      - "Europe/Istanbul"
+      - "Europe/Kyiv"
+      - "Europe/Lisbon"
       - "Europe/London"
+      - "Europe/Madrid"
+      - "Europe/Minsk"
       - "Europe/Moscow"
+      - "Europe/Oslo"
+      - "Europe/Paris"
+      - "Europe/Prague"
+      - "Europe/Riga"
+      - "Europe/Rome"
+      - "Europe/Sofia"
+      - "Europe/Stockholm"
+      - "Europe/Tallinn"
+      - "Europe/Vienna"
+      - "Europe/Vilnius"
+      - "Europe/Warsaw"
+      - "Europe/Zurich"
       - "Pacific/Auckland"
+      - "Pacific/Chatham"
+      - "Pacific/Fiji"
+      - "Pacific/Guam"
       - "Pacific/Honolulu"
+      - "Pacific/Majuro"
+      - "Pacific/Midway"
+      - "Pacific/Noumea"
+      - "Pacific/Port_Moresby"
+      - "Pacific/Tahiti"
+      - "Pacific/Wake"
