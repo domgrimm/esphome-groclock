@@ -1,3 +1,15 @@
+substitutions:
+  star_icon: "\U000F04D2"
+  sun_icon: "\U000F0599"
+  moon_icon: "\U000F0594"
+
+  lcd_font: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/LCD.ttf"
+  sun_image: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sun.png"
+  star_image: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/star.png"
+
+  sun_background_color: "FFED2B"
+  moon_background_color: "5DC5FC"
+
 packages:
   tz: github://domgrimm/esphome-groclock/resources/tz.yaml@main
 
