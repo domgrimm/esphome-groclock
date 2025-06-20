@@ -7,3 +7,8 @@ substitutions:
 
 packages:
   main: github://domgrimm/esphome-groclock/resources/main.yaml
+
+api:
+
+ota:
+  - platform: esphome

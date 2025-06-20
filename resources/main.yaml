@@ -40,12 +40,6 @@ psram:
 
 logger:
 
-api:
-
-ota:
-  - platform: esphome
-
-
 wifi:
   networks:
     - ssid: ${ssid}
