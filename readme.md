@@ -26,3 +26,4 @@ Install via the ESPHome Builder Home Assistant add-on. Copy the contents of `gro
 * Analogue clock option
 * Ability to turn off/dim wake screen after period of inactivity
 * Animate sun/star
+* Toggle between 12H/24H digital clock
