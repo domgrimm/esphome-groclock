@@ -17,5 +17,12 @@ Install via the ESPHome Builder Home Assistant add-on. Copy the contents of `gro
 * Timezone picker
 * Adjustable screen brightness for each mode
 
-[wake_photo]: https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/wake_photo.jpeg
-[sleep_photo]: https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sleep_photo.jpeg
+### To do:
+* Web installer using [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
+* Adjust sleep timers on-device
+* View wifi details (SSID, IP) on-device
+* Initialising splash screen on startup
+* Wifi AP details/QR code when not connected to wifi network
+* Analogue clock option
+* Ability to turn off/dim wake screen after period of inactivity
+* Animate sun/star
