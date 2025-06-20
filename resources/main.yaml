@@ -16,7 +16,7 @@ packages:
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
-  name_add_mac_suffix: false
+  name_add_mac_suffix: true
   platformio_options:
     board_build.flash_mode: dio
 
@@ -755,17 +755,17 @@ number:
     initial_value: 100
 
 switch:
-  - platform: template
-    name: DayNight
-    id: DayNight
-    icon: "mdi:theme-light-dark"
-    optimistic: True
-    on_turn_on:
-      then:
-        - script.execute: screen_sleep
-    on_turn_off:
-      then:
-        - script.execute: screen_wake
+#  - platform: template
+#    name: DayNight
+#    id: DayNight
+#    icon: "mdi:theme-light-dark"
+#    optimistic: True
+#    on_turn_on:
+#      then:
+#        - script.execute: screen_sleep
+#    on_turn_off:
+#      then:
+#        - script.execute: screen_wake
   - platform: template
     name: Sleep 2 Enabled
     id: sleep_2_enable

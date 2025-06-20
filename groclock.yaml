@@ -1,0 +1,9 @@
+substitutions:
+  name: "groclock"
+  friendly_name: "Groclock"
+
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+packages:
+  main: github://domgrimm/esphome-groclock/resources/main.yaml
