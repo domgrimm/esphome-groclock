@@ -182,11 +182,11 @@ lvgl:
   color_depth: 16
   style_definitions:
     - id: sun_style
-      bg_color: 0xFFED2B
+      bg_color: 0x${sun_background_color}
       text_color: 0xFFFFFF
       bg_opa: COVER
     - id: moon_style
-      bg_color: 0x5DC5FC
+      bg_color: 0x${moon_background_color}
       text_color: 0xFFFFFF
       bg_opa: COVER
     - id: time_style
