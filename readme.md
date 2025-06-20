@@ -1,6 +1,6 @@
 # ESPHome Groclock Emulator
 
-![][wake_photo]![][sleep_photo]
+<img src=https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/wake_photo.jpeg width=150><img src=https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sleep_photo.jpeg width=150>
 
 ### WIP
 
