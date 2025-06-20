@@ -15,6 +15,7 @@ Install via the ESPHome Builder Home Assistant add-on. Copy the contents of `gro
 * "Star countdown" around the outside of the sleep screen before wake up time
 * Show/hide the current time
 * Timezone picker
+* Adjustable screen brightness for each mode
 
 [wake_photo]: https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/wake_photo.jpeg
 [sleep_photo]: https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sleep_photo.jpeg
