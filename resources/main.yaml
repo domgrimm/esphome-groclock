@@ -38,10 +38,12 @@ psram:
   mode: octal
   speed: 80MHz
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
 
 
 wifi:
