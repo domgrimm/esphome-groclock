@@ -19,6 +19,7 @@ esphome:
   name_add_mac_suffix: true
   platformio_options:
     board_build.flash_mode: dio
+    board_build.partitions: huge_app.csv
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -33,12 +34,20 @@ esp32:
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
       CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
       CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESP32S3_SPIRAM_SUPPORT: "y"
+      CONFIG_SPIRAM_MODE_OCT: "y"
+      CONFIG_SPIRAM_SPEED_80M: "y"
 
 psram:
   mode: octal
   speed: 80MHz
 
 logger:
+  level: INFO
+  logs:
+    esphome: INFO
+    lvgl: WARN
+    display: WARN
 
 wifi:
   networks:
@@ -48,6 +57,9 @@ wifi:
   ap:
     ssid: "Groclock Fallback Hotspot"
     ap_timeout: 30s
+  # Add WiFi connection timeout and retry settings
+  retry_timeout: 30s
+  power_save_mode: NONE
 
 captive_portal:
 
@@ -120,18 +132,23 @@ i2c:
   - id: bus_a
     sda: GPIO19
     scl: GPIO45
+    frequency: 400kHz
 
 touchscreen:
   platform: gt911
   i2c_id: bus_a
   id: touch_screen
   display: screen
+  # Add touchscreen configuration for stability
+  reset_pin: GPIO41
+  interrupt_pin: GPIO42
 
 # --- SPI & Display ---
 spi:
   - id: lcd_spi
     clk_pin: GPIO48
     mosi_pin: GPIO47
+    frequency: 40MHz
 
 display:
   - platform: st7701s
@@ -172,8 +189,11 @@ display:
 lvgl:
   displays: screen
   touchscreens: touch_screen
-  buffer_size: 25%
+  buffer_size: 20%
   color_depth: 16
+  # Add LVGL configuration for stability
+  task_stack_size: 8192
+  task_priority: 5
   style_definitions:
     - id: sun_style
       bg_color: 0x${sun_background_color}
@@ -281,6 +301,18 @@ sensor:
     update_interval: 60s
     entity_category: diagnostic
     internal: true
+  - platform: uptime
+    name: "Uptime"
+    id: uptime_sensor
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: diag_group
+  - platform: free_heap
+    name: "Free Heap"
+    id: free_heap_sensor
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: diag_group
   # Reports the WiFi signal strength in %
   - platform: copy
     source_id: wifi_signal_db
@@ -462,7 +494,7 @@ datetime:
 
 # --- Interval for Star Timer and Time Updates ---
 interval:
-  - interval: 1s
+  - interval: 2s
     then:
       - lvgl.label.update:
           id: time_label_sun
@@ -699,7 +731,9 @@ output:
   - platform: ledc
     pin: GPIO38
     id: GPIO38
-    frequency: 100Hz
+    frequency: 1000Hz
+    min_power: 0.0
+    max_power: 1.0
 
   # Built in 240v relay
   - id: internal_relay_1
@@ -749,6 +783,12 @@ number:
     initial_value: 100
 
 switch:
+  - platform: restart
+    name: "Restart Device"
+    id: restart_switch
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: diag_group
 #  - platform: template
 #    name: DayNight
 #    id: DayNight
