@@ -49,17 +49,7 @@ logger:
     lvgl: WARN
     display: WARN
 
-wifi:
-  networks:
-    - ssid: ${ssid}
-      password: ${password}
-  ap:
-    ssid: "Groclock Fallback Hotspot"
-    ap_timeout: 30s
-  retry_timeout: 30s
-  power_save_mode: NONE
 
-captive_portal:
 
 web_server:
   version: 3
