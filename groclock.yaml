@@ -8,7 +8,14 @@ substitutions:
 packages:
   main: github://domgrimm/esphome-groclock/resources/main.yaml
 
+# Add API configuration for Home Assistant integration
 api:
 
+# Add OTA configuration for updates
 ota:
   - platform: esphome
+
+# Add secrets file reference
+secrets:
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
