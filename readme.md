@@ -2,166 +2,204 @@
 
 <img src=https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/wake_photo.jpeg width=250><img src=https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sleep_photo.jpeg width=250>
 
-## Overview
+A complete ESPHome project that emulates a Groclock toddler sleep trainer, designed to run on a Guition ESP32-S3-4848S040 display board.
 
-A complete ESPHome toddler sleep trainer emulator, based on the [Groclock](https://www.target.com.au/p/the-gro-company-groclock/51891015) and designed for the [Guition ESP32-S3-4848S040](https://devices.esphome.io/devices/Guition-ESP32-S3-4848S040) 480×480 smart screen.
+## 🚀 Features
 
-Can be integrated into Home Assistant or used standalone via a built-in web server.
+### **Core Sleep/Wake Functionality**
+- **3 Configurable Timers**: Set up to 3 separate sleep/wake time pairs
+- **Toggleable Timers**: Enable/disable timers 2 and 3 as needed
+- **Next-Day Logic**: Automatically handles wake times that occur the next day
+- **Star Countdown**: Visual countdown with 12 stars disappearing clockwise from 1pm position
 
-## Features
+### **Display & UI**
+- **Sleep Screen**: Dim blue background (#5DC5FC) with star image and animated countdown
+- **Wake Screen**: Yellow background (#FFCE2B) with sun image
+- **Time Display**: Shows current time in HH:MM format
+- **IP Address Display**: Tap once to show device IP for 10 seconds
+- **Double-Tap Backlight**: Toggle screen backlight on/off (wake screen only)
 
-### 🕐 **Sleep Timer System**
-- **Three separate timers**: Configure up to three independent sleep/wake time pairs
-- **Toggleable timers**: Enable/disable timers 2 and 3 as needed
-- **Next-day logic**: Automatically handles wake times before sleep times (e.g., 10 PM sleep, 7 AM wake)
-- **Smart timer selection**: Automatically uses the soonest upcoming wake time
+### **Startup Sequence**
+- **Initializing Screen**: Black background with "Initializing..." and animated dots
+- **30-Second WiFi Wait**: Gives WiFi 30 seconds to connect before showing setup
+- **Setup Screen**: Shows fallback hotspot instructions with configuration URL
+- **Automatic Transition**: Seamlessly moves to wake screen once WiFi connects
 
-### 🌟 **Star Countdown Display**
-- **12-star circle**: Stars positioned around the sleep screen in a circle
-- **Clockwise countdown**: Stars disappear starting from 1 PM position
-- **Visual progress**: Shows remaining time until wake time
-- **Smooth transitions**: Stars fade out as time progresses
+### **Brightness Controls**
+- **Current Brightness**: Adjust overall screen brightness
+- **Sleep Brightness**: Control brightness during sleep screen
+- **Wake Brightness**: Control brightness during wake screen
+- **Screen Off Timer**: Automatically turn off screen after configurable delay (0.5-24 hours)
 
-### 📱 **Interactive Controls**
-- **Double-tap backlight**: Toggle screen brightness on/off with double-tap (wake screen only)
-- **Single-tap IP display**: Show device IP address in top-left corner for 10 seconds
-- **Touch coordinates**: Logs touch events for debugging
+### **Network & Configuration**
+- **WiFi Connection**: Primary network with fallback hotspot
+- **Fallback Hotspot**: Uses device name for SSID (e.g., "Groclock Fallback")
+- **Web Interface**: Full ESPHome web server with organized controls
+- **OTA Updates**: Over-the-air firmware updates
+- **Timezone Support**: Full timezone selection using tz.yaml
 
-### 🎨 **Visual Screens**
-- **Wake screen**: Yellow background (#FFCE2B) with sun image and time display
-- **Sleep screen**: Blue background (#5DC5FC) with star image and star countdown
-- **Time display**: Optional digital clock on both screens
-- **IP address**: Shows current device IP when tapped
+### **Diagnostics & Monitoring**
+- **WiFi Signal Strength**: Real-time signal monitoring
+- **Uptime Tracking**: Device uptime display
+- **Web Logging**: View logs through web interface
+- **Restart Capability**: Remote device restart
 
-### 💡 **Brightness Controls**
-- **Current brightness**: Real-time brightness control slider
-- **Sleep brightness**: Separate brightness setting for sleep screen (default: 30%)
-- **Wake brightness**: Separate brightness setting for wake screen (default: 100%)
-- **Screen off timer**: Automatic screen turn-off after configurable delay (default: 0.5 hours)
+## 📋 Requirements
 
-### ⚙️ **Configuration Options**
-- **Timezone selection**: Full timezone support using `tz.yaml` package
-- **Time display toggle**: Show/hide digital clock on screen
-- **Screen off delay**: Adjustable delay before screen turns off (0.5-24 hours)
-- **Timer enable/disable**: Toggle individual timers on/off
+### **Hardware**
+- Guition ESP32-S3-4848S040 display board
+- Micro USB cable for programming
+- Power supply (5V)
 
-### 🌐 **Network & Integration**
-- **WiFi connectivity**: Automatic connection with fallback hotspot
-- **Home Assistant API**: Full integration support
-- **OTA updates**: Over-the-air firmware updates
-- **Web interface**: Built-in web server for configuration
-- **IP address display**: Tap screen to show current IP address
+### **Software**
+- ESPHome (latest version)
+- Home Assistant (optional, for integration)
 
-### 📊 **Diagnostics**
-- **WiFi signal strength**: Real-time signal monitoring
-- **Uptime tracking**: Device uptime display
-- **Web interface**: Comprehensive configuration and monitoring
-- **Logging**: Clean, minimal logging suitable for production
+## 🔧 Installation
 
-## Hardware Requirements
+### **1. Clone the Repository**
+```bash
+git clone <repository-url>
+cd esphome-groclock
+```
 
-- **Board**: Guition ESP32-S3-4848S040
-- **Display**: 480×480 ST7701S LCD with GT911 touchscreen
-- **Power**: 5V power supply (minimum 2A recommended)
-- **Network**: 2.4GHz WiFi connection
-
-## Installation
-
-### 1. **Create secrets.yaml**
+### **2. Configure WiFi**
+Create a `secrets.yaml` file in the project directory:
 ```yaml
 wifi_ssid: "YOUR_WIFI_SSID"
 wifi_password: "YOUR_WIFI_PASSWORD"
 ```
 
-### 2. **Install via ESPHome**
-- Use ESPHome Builder Home Assistant add-on
-- Copy contents of `groclock-v2.yaml` to device configuration
-- Change device name and WiFi details as needed
+### **3. Customize Device Name**
+Edit `groclock-v2.yaml` and update the substitutions:
+```yaml
+substitutions:
+  name: "Your Groclock Name"
+  friendly_name: "Your Friendly Name"
+```
 
-### 3. **Configure Settings**
-- Set your timezone in the web interface
-- Configure sleep/wake times for your schedule
-- Adjust brightness settings as needed
-- Enable/disable additional timers
+### **4. Upload to Device**
+1. Connect the ESP32-S3 board via USB
+2. In ESPHome, add the `groclock-v2.yaml` configuration
+3. Upload the firmware to your device
 
-## Usage
+## 🎮 Usage
 
-### **Basic Operation**
-1. **Set sleep/wake times** in the web interface
-2. **Enable desired timers** (Timer 1 is always active)
-3. **Device automatically switches** between sleep and wake screens
-4. **Stars countdown** during sleep mode
-5. **Screen turns off** after configured delay
+### **Initial Setup**
+1. **Power On**: Device shows "Initializing..." with animated dots
+2. **WiFi Connection**: If WiFi connects, shows wake screen immediately
+3. **Fallback Mode**: If no WiFi after 30 seconds, shows setup screen
+4. **Hotspot Setup**: Connect to "{DeviceName} Fallback" WiFi network
+5. **Configuration**: Visit http://192.168.4.1 to configure WiFi
+6. **Complete**: Device transitions to wake screen once connected
 
-### **Interactive Features**
-- **Double-tap screen** (wake mode): Toggle backlight on/off
-- **Single-tap screen**: Show IP address for 10 seconds
-- **Web interface**: Full configuration and monitoring
+### **Daily Operation**
+1. **Wake Screen**: Shows sun image with current time
+2. **Sleep Time**: At configured sleep time, switches to sleep screen
+3. **Star Countdown**: Stars disappear clockwise as time progresses
+4. **Wake Time**: At wake time, shows wake screen
+5. **Screen Off**: After configurable delay, screen turns off
 
-### **Timer Configuration**
-- **Timer 1**: Always active, primary sleep schedule
-- **Timer 2**: Optional, can be enabled/disabled
-- **Timer 3**: Optional, can be enabled/disabled
-- **Smart selection**: Uses soonest upcoming wake time
+### **Controls**
+- **Single Tap**: Show IP address for 10 seconds
+- **Double Tap**: Toggle backlight on/off (wake screen only)
+- **Web Interface**: Full control via ESPHome web interface
 
-## Configuration
+## ⚙️ Configuration
 
-### **Time Settings**
-- **Sleep Time 1-3**: Set bedtime for each timer
-- **Wake Time 1-3**: Set wake time for each timer
-- **Timer Enable**: Toggle timers 2 and 3 on/off
+### **Timer Settings**
+Configure up to 3 sleep/wake time pairs:
+- **Timer 1**: Always active
+- **Timer 2**: Toggleable
+- **Timer 3**: Toggleable
 
-### **Brightness Controls**
-- **Current Screen Brightness**: Real-time control
-- **Sleep Screen Brightness**: Default 30%
-- **Wake Screen Brightness**: Default 100%
-- **Screen Off Delay**: 0.5-24 hours (default: 0.5 hours)
+### **Brightness Settings**
+- **Current Brightness**: 0-100%
+- **Sleep Brightness**: 0-100%
+- **Wake Brightness**: 0-100%
+- **Screen Off Delay**: 0.5-24 hours
 
-### **Display Options**
-- **Show Time**: Toggle digital clock display
-- **Timezone**: Select your local timezone
+### **Timezone**
+Select your timezone from the comprehensive list in `tz.yaml`
 
-## Troubleshooting
+## 🔍 Troubleshooting
 
-### **Common Issues**
-- **WiFi connection**: Check credentials in `secrets.yaml`
-- **Power supply**: Ensure stable 5V power
-- **Touchscreen**: Verify GT911 configuration
-- **Display**: Check ST7701S settings
+### **WiFi Connection Issues**
+1. **Check Credentials**: Verify SSID and password in `secrets.yaml`
+2. **Signal Strength**: Ensure good WiFi signal strength
+3. **Fallback Hotspot**: Connect to device hotspot if primary WiFi fails
+4. **Configuration**: Use web interface at device IP to configure
 
-### **Debug Features**
-- **Web interface**: Comprehensive device monitoring
-- **Touch logging**: Shows touch coordinates
-- **System logs**: Device status and diagnostics
+### **Display Issues**
+1. **Brightness**: Adjust brightness settings in web interface
+2. **Touch Response**: Ensure clean screen surface
+3. **Time Display**: Check timezone and NTP server settings
 
-## Technical Details
+### **Timer Issues**
+1. **Time Format**: Verify 12-hour format (AM/PM)
+2. **Next-Day Logic**: Ensure wake time is after sleep time
+3. **Star Countdown**: Check that stars are visible and positioned correctly
 
-### **ESP32-S3 Configuration**
-- **CPU**: 240MHz
-- **Flash**: 16MB
-- **PSRAM**: 8MB octal mode
+### **Common Problems**
+- **Device Not Booting**: Check power supply and USB connection
+- **Web Interface Unavailable**: Verify device IP and network connectivity
+- **OTA Updates Failing**: Ensure stable WiFi connection during updates
+
+## 📁 File Structure
+
+```
+esphome-groclock/
+├── groclock-v2.yaml          # Main configuration file
+├── secrets.yaml              # WiFi credentials (create this)
+├── README-v2.md             # This documentation
+├── resources/
+│   ├── main.yaml            # Original V1 configuration
+│   ├── tz.yaml             # Timezone definitions
+│   ├── LCD.ttf             # LCD font file
+│   ├── sun.png             # Sun image for wake screen
+│   ├── star.png            # Star image for sleep screen
+│   ├── sleep_photo.jpeg    # Sleep screen background
+│   └── wake_photo.jpeg     # Wake screen background
+└── LICENSE                  # Project license
+```
+
+## 🔧 Technical Details
+
+### **Hardware Specifications**
+- **Board**: Guition ESP32-S3-4848S040
+- **Display**: 4.8" 480x480 IPS LCD
+- **Touch**: Capacitive touchscreen
+- **Processor**: ESP32-S3 dual-core 240MHz
+- **Memory**: 8MB Flash, 2MB PSRAM
+- **Connectivity**: WiFi, Bluetooth LE
+
+### **Software Components**
 - **Framework**: ESP-IDF
+- **Display Driver**: ST7701S
+- **Touch Driver**: GT911
+- **Graphics**: LVGL 8.4.0
+- **Font**: Custom LCD font with full character support
+
+### **Network Configuration**
+- **Primary**: WiFi station mode with fallback
+- **Fallback**: Access Point mode with device name
+- **Timeout**: 30-second AP timeout, 60-second reboot timeout
+- **Power Save**: Disabled for responsive operation
 
 ### **Display Configuration**
-- **Driver**: ST7701S
-- **Resolution**: 480×480
-- **Touchscreen**: GT911
-- **Graphics**: LVGL 8.4.0
+- **Resolution**: 480x480 pixels
+- **Color Depth**: 16-bit RGB565
+- **Buffer Size**: 15% of available memory
+- **Refresh Rate**: Optimized for smooth operation
 
-### **Network Features**
-- **WiFi**: 2.4GHz with fallback hotspot
-- **API**: Home Assistant integration
-- **OTA**: Over-the-air updates
-- **Web Server**: Built-in configuration interface
+## 🤝 Contributing
 
-## License
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-This project is open source and available under the [LICENSE](LICENSE) file.
+## 📄 License
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues and pull requests.
-
----
-
-**Note**: This is a complete rewrite of the original groclock project with enhanced features, improved reliability, and comprehensive documentation. 
+This project is licensed under the MIT License - see the LICENSE file for details.
