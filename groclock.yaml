@@ -29,6 +29,8 @@ esphome:
   name_add_mac_suffix: true
   platformio_options:
     board_build.flash_mode: dio
+  on_boot:
+    - script.execute: show_startup
 
 # ESP32 Platform Configuration
 esp32:
@@ -62,7 +64,7 @@ wifi:
       password: !secret wifi_password
       priority: 1
   ap:
-    ssid: "Groclock Fallback Hotspot"
+    ssid: "${name} Fallback"
     ap_timeout: 30s
   reboot_timeout: 60s
   power_save_mode: NONE
@@ -103,11 +105,11 @@ font:
   - file: ${lcd_font}
     id: lcd_time_font
     size: 60
-    glyphs: "0123456789APM:-."
+    glyphs: "0123456789:-./abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
   - file: ${lcd_font}
     id: lcd_time_font_small
     size: 30
-    glyphs: "0123456789APM:-."
+    glyphs: "0123456789:-./abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
 
 # --- Globals ---
 globals:
@@ -153,6 +155,18 @@ globals:
     type: bool
     initial_value: 'false'
   - id: ip_display_start_time
+    type: unsigned long
+    initial_value: '0'
+  - id: startup_phase
+    type: std::string
+    initial_value: '"initializing"'
+  - id: init_dots_count
+    type: int
+    initial_value: '0'
+  - id: last_dot_update
+    type: unsigned long
+    initial_value: '0'
+  - id: startup_time
     type: unsigned long
     initial_value: '0'
 
@@ -263,7 +277,72 @@ lvgl:
       text_color: 0xD9D9D9
       text_font: lcd_time_font
       text_align: CENTER
+    - id: startup_style
+      bg_color: 0x000000
+      text_color: 0xFFFFFF
+      bg_opa: COVER
+    - id: startup_text_style
+      text_color: 0xFFFFFF
+      text_font: lcd_time_font
+      text_align: CENTER
   pages:
+    - id: startup_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [startup_style]
+            widgets:
+              - label:
+                  id: startup_label
+                  align: LEFT_MID
+                  text_font: lcd_time_font
+                  styles: [startup_text_style]
+                  text: "Initializing..."
+    - id: setup_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [startup_style]
+            widgets:
+              - label:
+                  id: setup_label_1
+                  align: CENTER
+                  y: -80
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "Groclock setup"
+              - label:
+                  id: setup_label_2
+                  align: CENTER
+                  y: -40
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "Connect to wifi:"
+              - label:
+                  id: setup_label_3
+                  align: CENTER
+                  y: 0
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "${name} Fallback"
+              - label:
+                  id: setup_label_4
+                  align: CENTER
+                  y: 40
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "visit:"
+              - label:
+                  id: setup_label_5
+                  align: CENTER
+                  y: 80
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "http://192.168.4.1"
     - id: sun_page
       widgets:
         - obj:
@@ -355,6 +434,10 @@ lvgl:
               - label: { id: star_9, align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -186, y: -107, hidden: false }  # 10pm
               - label: { id: star_10, align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -107, y: -186, hidden: false } # 11pm
               - label: { id: star_11,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 0, y: -215, hidden: false }   # 12pm
+
+
+
+
 
 # --- Time ---
 time:
@@ -561,6 +644,49 @@ interval:
       - logger.log: "Device is running - 10 second interval"
   - interval: 2s
     then:
+      - lambda: |-
+          // Startup sequence logic
+          if (id(startup_phase) == "initializing") {
+            // Animate the dots every 500ms
+            auto now = millis();
+            if (now - id(last_dot_update) >= 500) {
+              id(last_dot_update) = now;
+              id(init_dots_count) = (id(init_dots_count) + 1) % 4;
+            }
+            
+            // Check if WiFi is connected
+            if (!id(ip_address).get_state().empty() && 
+                (id(ip_address).get_state().find("192.168.") != std::string::npos || 
+                 id(ip_address).get_state().find("10.") != std::string::npos ||
+                 id(ip_address).get_state().find("172.") != std::string::npos)) {
+              id(startup_phase) = "connected";
+              id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+            // Check if fallback hotspot is active (no IP means hotspot mode)
+            // Wait 30 seconds before showing setup page
+            else if (id(ip_address).get_state().empty() && (millis() - id(startup_time)) >= 30000) {
+              id(startup_phase) = "setup";
+              id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+          }
+          else if (id(startup_phase) == "setup") {
+            // Check if WiFi is now connected (user selected network)
+            if (!id(ip_address).get_state().empty() && 
+                (id(ip_address).get_state().find("192.168.") != std::string::npos || 
+                 id(ip_address).get_state().find("10.") != std::string::npos ||
+                 id(ip_address).get_state().find("172.") != std::string::npos)) {
+              id(startup_phase) = "connected";
+              id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+          }
+      - lvgl.label.update:
+          id: startup_label
+          text: !lambda |-
+            std::string dots = "";
+            for (int i = 0; i < id(init_dots_count); i++) {
+              dots += ".";
+            }
+            return "Initializing" + dots;
       - lvgl.label.update:
           id: time_label_sun
           text: !lambda |-
@@ -736,6 +862,12 @@ interval:
 
 # --- Scripts ---
 script:
+  - id: show_startup
+    then:
+      - lvgl.page.show: startup_page
+      - logger.log: "Showing startup page"
+      - lambda: |-
+          id(startup_time) = millis();
   - id: screen_sleep
     then:
       - script.execute: start_timer
@@ -750,7 +882,12 @@ script:
   - id: screen_wake
     then:
       - script.execute: stop_timer
-      - lvgl.page.show: sun_page
+      - lambda: |-
+          // Only show sun page if not in startup phase
+          if (id(startup_phase) != "initializing" && id(startup_phase) != "setup") {
+            id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            id(current_page) = "sun_page";
+          }
       - light.turn_on:
           id: screen_brightness
           brightness: !lambda "return id(wake_brightness).state / 100.0;"
@@ -761,7 +898,6 @@ script:
             id(screen_off_timer_active) = true;
           }
           id(backlight_off) = false;
-          id(current_page) = "sun_page";
   - id: screen_off
     then:
       - light.turn_off: screen_brightness
