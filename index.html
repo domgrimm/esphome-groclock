@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groclock V2 - ESP Web Tools</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+        
+        .install-section {
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .features {
+            margin: 40px 0;
+        }
+        
+        .features h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .feature-card h3 {
+            margin: 0 0 10px 0;
+            color: #FFCE2B;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .instructions h2 {
+            margin-top: 0;
+            color: #5DC5FC;
+        }
+        
+        .instructions ol {
+            text-align: left;
+        }
+        
+        .instructions li {
+            margin: 10px 0;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning strong {
+            color: #FFC107;
+        }
+    </style>
+    
+    <!-- ESP Web Tools JavaScript -->
+    <script
+        type="module"
+        src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+    ></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🌙 Groclock V2</h1>
+        <p class="subtitle">Smart Sleep Timer with Beautiful Display</p>
+        
+        <div class="install-section">
+            <esp-web-install-button
+                manifest="manifest.json"
+            >
+                <button slot="activate" style="
+                    background: linear-gradient(45deg, #FFCE2B, #5DC5FC);
+                    border: none;
+                    color: white;
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    border-radius: 50px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                    transition: transform 0.2s;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    📱 Install Groclock Firmware
+                </button>
+                <span slot="unsupported">
+                    ⚠️ Your browser doesn't support Web Serial. Please use Google Chrome or Microsoft Edge.
+                </span>
+                <span slot="not-allowed">
+                    ⚠️ This page must be served over HTTPS to use ESP Web Tools.
+                </span>
+            </esp-web-install-button>
+        </div>
+        
+        <div class="features">
+            <h2>✨ Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🌅 Smart Sleep Timer</h3>
+                    <p>Automated sleep and wake cycles with visual countdown</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📱 Touch Interface</h3>
+                    <p>Beautiful touchscreen with intuitive controls</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🌙 Multiple Timers</h3>
+                    <p>Support for up to 3 different sleep/wake schedules</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💡 Adjustable Brightness</h3>
+                    <p>Customizable brightness for sleep and wake modes</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📶 WiFi Integration</h3>
+                    <p>Easy setup and Home Assistant integration</p>
+                </div>
+                <div class="feature-card">
+                    <h3>⚡ Auto Updates</h3>
+                    <p>Over-the-air firmware updates</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>📋 Installation Instructions</h2>
+            <ol>
+                <li><strong>Connect your ESP32-S3 device</strong> to your computer via USB</li>
+                <li><strong>Click the install button</strong> above and select your device</li>
+                <li><strong>Wait for installation</strong> to complete (this may take a few minutes)</li>
+                <li><strong>Configure WiFi</strong> when prompted</li>
+                <li><strong>Access your device</strong> at the provided IP address</li>
+            </ol>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Important Notes:</strong>
+            <ul>
+                <li>This firmware is designed for ESP32-S3 devices with a specific display configuration</li>
+                <li>Make sure your device has sufficient flash memory (16MB recommended)</li>
+                <li>The installation will erase all existing data on the device</li>
+                <li>Use Google Chrome or Microsoft Edge for the best experience</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; opacity: 0.8;">
+            <p>Built with ❤️ using ESPHome and ESP Web Tools</p>
+            <p><a href="https://github.com/domgrimm/esphome-groclock" style="color: #FFCE2B;">View on GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html> 
