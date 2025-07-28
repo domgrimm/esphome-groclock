@@ -71,7 +71,7 @@ captive_portal:
 
 web_server:
   version: 3
-  log: False
+  log: True
   sorting_groups:
     - id: time_group
       name: "Time Settings"
@@ -103,6 +103,10 @@ font:
   - file: ${lcd_font}
     id: lcd_time_font
     size: 60
+    glyphs: "0123456789APM:-."
+  - file: ${lcd_font}
+    id: lcd_time_font_small
+    size: 30
     glyphs: "0123456789APM:-."
 
 # --- Globals ---
@@ -293,9 +297,9 @@ lvgl:
               - label:
                   id: ip_label_sun
                   align: TOP_LEFT
-                  y: 5
-                  x: 5
-                  text_font: lcd_time_font
+                  y: 1
+                  x: 1
+                  text_font: lcd_time_font_small
                   styles: [time_style]
                   text: "192.168.1.1"
                   hidden: true
@@ -327,9 +331,9 @@ lvgl:
               - label:
                   id: ip_label_sleep
                   align: TOP_LEFT
-                  y: 5
-                  x: 5
-                  text_font: lcd_time_font
+                  y: 1
+                  x: 1
+                  text_font: lcd_time_font_small
                   styles: [time_style_sleep]
                   text: "192.168.1.1"
                   hidden: true
