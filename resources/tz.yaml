@@ -2,6 +2,7 @@ select:
   - platform: template
     id: timezone_select
     name: "Device Timezone"
+    icon: "mdi:earth"
     optimistic: True
     web_server:
       sorting_weight: 2
