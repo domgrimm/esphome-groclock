@@ -13,30 +13,27 @@ A complete ESPHome project that emulates a Groclock toddler sleep trainer, desig
 - **Star Countdown**: Visual countdown with 12 stars disappearing clockwise from 1pm position
 
 ### **Display & UI**
-- **Sleep Screen**: Dim blue background (#5DC5FC) with star image and animated countdown
-- **Wake Screen**: Yellow background (#FFCE2B) with sun image
-- **Time Display**: Shows current time in HH:MM format
-- **IP Address Display**: Tap once to show device IP for 10 seconds
-- **Double-Tap Backlight**: Toggle screen backlight on/off (wake screen only)
+- **Sleep Screen**: Dim blue background with star image and animated countdown
+- **Wake Screen**: Yellow background with sun image
+- **Time Display**: Shows current time in HH:MM format (toggleable)
+- **IP Address Display**: Tap screen to show device IP
+- **Smart Screen Control**: Double-tap to toggle backlight (wake screen only)
+- **Screen Off Timer**: Automatically turn off screen after configurable delay
 
 ### **Startup Sequence**
-- **Initializing Screen**: Black background with "Initializing..." and animated dots
-- **30-Second WiFi Wait**: Gives WiFi 30 seconds to connect before showing setup
-- **Setup Screen**: Shows fallback hotspot instructions with configuration URL
+- **Setup Screen**: Shows fallback hotspot instructions with configuration URL if configured SSID isn't available
 - **Automatic Transition**: Seamlessly moves to wake screen once WiFi connects
 
 ### **Brightness Controls**
 - **Current Brightness**: Adjust overall screen brightness
 - **Sleep Brightness**: Control brightness during sleep screen
 - **Wake Brightness**: Control brightness during wake screen
-- **Screen Off Timer**: Automatically turn off screen after configurable delay (0.5-24 hours)
+- **Screen Off Timer**: Automatically turn off screen after configurable delay
 
 ### **Network & Configuration**
 - **WiFi Connection**: Primary network with fallback hotspot
-- **Fallback Hotspot**: Uses device name for SSID (e.g., "Groclock Fallback")
-- **Web Interface**: Full ESPHome web server with organized controls
-- **OTA Updates**: Over-the-air firmware updates
-- **Timezone Support**: Full timezone selection using tz.yaml
+- **Web Interface**: Full web server with organized controls
+- **Timezone Support**: Full timezone selection
 
 ### **Diagnostics & Monitoring**
 - **WiFi Signal Strength**: Real-time signal monitoring
@@ -48,7 +45,7 @@ A complete ESPHome project that emulates a Groclock toddler sleep trainer, desig
 
 ### **Hardware**
 - Guition ESP32-S3-4848S040 display board
-- Micro USB cable for programming
+- USB-C cable for flashing
 - Power supply (5V)
 
 ### **Software**
@@ -71,7 +68,7 @@ wifi_password: "YOUR_WIFI_PASSWORD"
 ```
 
 ### **3. Customize Device Name**
-Edit `groclock-v2.yaml` and update the substitutions:
+Edit `groclock.yaml` and update the substitutions:
 ```yaml
 substitutions:
   name: "Your Groclock Name"
@@ -80,7 +77,7 @@ substitutions:
 
 ### **4. Upload to Device**
 1. Connect the ESP32-S3 board via USB
-2. In ESPHome, add the `groclock-v2.yaml` configuration
+2. In ESPHome, add the `groclock.yaml` configuration
 3. Upload the firmware to your device
 
 ## 🎮 Usage
@@ -115,9 +112,14 @@ Configure up to 3 sleep/wake time pairs:
 
 ### **Brightness Settings**
 - **Current Brightness**: 0-100%
-- **Sleep Brightness**: 0-100%
-- **Wake Brightness**: 0-100%
-- **Screen Off Delay**: 0.5-24 hours
+- **Sleep Brightness**: 0-100% (default: 30%)
+- **Wake Brightness**: 0-100% (default: 100%)
+- **Screen Off Delay**: 0.5-24 hours (default: 0.5 hours)
+
+### **Screen Control**
+- **Manual Override**: Screen stays off when manually turned off
+- **Natural Transitions**: Screen turns on automatically for sleep/wake period changes
+- **Double Tap**: Toggle screen on/off (wake screen only)
 
 ### **Timezone**
 Select your timezone from the comprehensive list in `tz.yaml`
@@ -134,6 +136,7 @@ Select your timezone from the comprehensive list in `tz.yaml`
 1. **Brightness**: Adjust brightness settings in web interface
 2. **Touch Response**: Ensure clean screen surface
 3. **Time Display**: Check timezone and NTP server settings
+4. **Screen Control**: Double-tap to toggle screen if it's off
 
 ### **Timer Issues**
 1. **Time Format**: Verify 12-hour format (AM/PM)
@@ -144,22 +147,20 @@ Select your timezone from the comprehensive list in `tz.yaml`
 - **Device Not Booting**: Check power supply and USB connection
 - **Web Interface Unavailable**: Verify device IP and network connectivity
 - **OTA Updates Failing**: Ensure stable WiFi connection during updates
+- **Screen Won't Turn On**: Try double-tapping the screen
 
 ## 📁 File Structure
 
 ```
 esphome-groclock/
-├── groclock-v2.yaml          # Main configuration file
+├── groclock.yaml             # Main configuration file
 ├── secrets.yaml              # WiFi credentials (create this)
-├── README-v2.md             # This documentation
+├── readme.md                # This documentation
 ├── resources/
-│   ├── main.yaml            # Original V1 configuration
 │   ├── tz.yaml             # Timezone definitions
 │   ├── LCD.ttf             # LCD font file
 │   ├── sun.png             # Sun image for wake screen
-│   ├── star.png            # Star image for sleep screen
-│   ├── sleep_photo.jpeg    # Sleep screen background
-│   └── wake_photo.jpeg     # Wake screen background
+│   └── star.png            # Star image for sleep screen
 └── LICENSE                  # Project license
 ```
 
@@ -192,13 +193,6 @@ esphome-groclock/
 - **Buffer Size**: 15% of available memory
 - **Refresh Rate**: Optimized for smooth operation
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
 
 ## 📄 License
 
