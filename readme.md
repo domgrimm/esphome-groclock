@@ -56,7 +56,7 @@ A complete ESPHome project that emulates a Groclock toddler sleep trainer, desig
 
 ### **1. Clone the Repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/domgrimm/esphome-groclock.git
 cd esphome-groclock
 ```
 
