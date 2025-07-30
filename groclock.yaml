@@ -136,6 +136,9 @@ globals:
   - id: backlight_off
     type: bool
     initial_value: 'false'
+  - id: manually_turned_off
+    type: bool
+    initial_value: 'false'
   - id: current_page
     type: std::string
     initial_value: '"sun_page"'
@@ -1040,6 +1043,9 @@ interval:
                 id(current_page) = "sleep_page";
                 id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_NONE, 0);
                 
+                // Clear manually turned off flag to allow screen to turn on for sleep period
+                id(manually_turned_off) = false;
+                
                 // Calculate and show appropriate stars
                 id(total_duration_sec) = current_sleep_end - current_sleep_start;
                 float elapsed = current_ts - current_sleep_start;
@@ -1055,6 +1061,9 @@ interval:
                 id(in_sleep_period) = false;
                 id(current_page) = "sun_page";
                 id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+                
+                // Clear manually turned off flag to allow screen to turn on for wake period
+                id(manually_turned_off) = false;
                 
                 // Hide all stars
                 for (int i = 0; i < 12; ++i) {
@@ -1242,13 +1251,21 @@ interval:
           condition:
             lambda: 'return id(in_sleep_period);'
           then:
-            - light.turn_on:
-                id: screen_brightness
-                brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+            - if:
+                condition:
+                  lambda: 'return !id(manually_turned_off);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(sleep_brightness).state / 100.0;"
           else:
-            - light.turn_on:
-                id: screen_brightness
-                brightness: !lambda "return id(wake_brightness).state / 100.0;"
+            - if:
+                condition:
+                  lambda: 'return !id(manually_turned_off);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(wake_brightness).state / 100.0;"
 
 # --- Scripts ---
 script:
@@ -1265,9 +1282,13 @@ script:
           id(in_sleep_period) = true;
           id(current_page) = "sleep_page";
           id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_NONE, 0);
-      - light.turn_on:
-          id: screen_brightness
-          brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+      - if:
+          condition:
+            lambda: 'return !id(manually_turned_off);'
+          then:
+            - light.turn_on:
+                id: screen_brightness
+                brightness: !lambda "return id(sleep_brightness).state / 100.0;"
       - lambda: |-
           id(screen_off_timer_active) = false;
           id(backlight_off) = false;
@@ -1336,9 +1357,13 @@ script:
             id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
             id(current_page) = "sun_page";
           }
-      - light.turn_on:
-          id: screen_brightness
-          brightness: !lambda "return id(wake_brightness).state / 100.0;"
+      - if:
+          condition:
+            lambda: 'return !id(manually_turned_off);'
+          then:
+            - light.turn_on:
+                id: screen_brightness
+                brightness: !lambda "return id(wake_brightness).state / 100.0;"
       - lambda: |-
           auto now = id(sntp_time).now();
           if (now.is_valid()) {
@@ -1357,9 +1382,11 @@ script:
           if (id(backlight_off)) {
             // Turn backlight on
             id(backlight_off) = false;
+            id(manually_turned_off) = false;
           } else {
             // Turn backlight off
             id(backlight_off) = true;
+            id(manually_turned_off) = true;
           }
       - if:
           condition:
@@ -1367,9 +1394,17 @@ script:
           then:
             - light.turn_off: screen_brightness
           else:
-            - light.turn_on:
-                id: screen_brightness
-                brightness: !lambda "return id(wake_brightness).state / 100.0;"
+            - if:
+                condition:
+                  lambda: 'return id(in_sleep_period);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+                else:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(wake_brightness).state / 100.0;"
 
 # --- Brightness Controls ---
 output:
