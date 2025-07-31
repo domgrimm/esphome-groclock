@@ -2,6 +2,9 @@ substitutions:
   name: "groclock-v2"
   friendly_name: "Groclock V2"
   
+  # Screen rotation: 0, 90, 180, or 270 degrees
+  screen_rotation: "0"
+  
   star_icon: "\U000F04D2"
   sun_icon: "\U000F0599"
   moon_icon: "\U000F0594"
@@ -240,6 +243,7 @@ display:
     data_rate: 2MHz
     color_order: RGB
     invert_colors: false
+    rotation: ${screen_rotation}
     dimensions:
       width: 480
       height: 480
