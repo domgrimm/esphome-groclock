@@ -75,7 +75,19 @@ substitutions:
   friendly_name: "Your Friendly Name"
 ```
 
-### **4. Upload to Device**
+### **4. Screen Rotation**
+To change rotation, edit the `screen_rotation` value in `groclock.yaml`:
+```yaml
+substitutions:
+  screen_rotation: "90"  # Change to desired rotation
+```
+Match your mounting orientation:
+- **0**: Normal orientation (default)
+- **90**: Rotate 90° clockwise
+- **180**: Rotate 180° (upside down)
+- **270**: Rotate 270° clockwise
+
+### **5. Upload to Device**
 1. Connect the ESP32-S3 board via USB
 2. In ESPHome, add the `groclock.yaml` configuration
 3. Upload the firmware to your device
@@ -109,19 +121,6 @@ Configure up to 3 sleep/wake time pairs:
 - **Timer 1**: Always active
 - **Timer 2**: Toggleable
 - **Timer 3**: Toggleable
-
-### **Screen Rotation**
-Rotate the display to match your mounting orientation:
-- **0 degrees**: Normal orientation (default)
-- **90 degrees**: Rotate 90° clockwise
-- **180 degrees**: Rotate 180° (upside down)
-- **270 degrees**: Rotate 270° clockwise
-
-To change rotation, edit the `screen_rotation` value in `groclock.yaml`:
-```yaml
-substitutions:
-  screen_rotation: "90"  # Change to desired rotation
-```
 
 ### **Brightness Settings**
 - **Current Brightness**: 0-100%
