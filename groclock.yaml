@@ -21,6 +21,7 @@ packages:
 
 # API for Home Assistant integration
 api:
+  reboot_timeout: 0s
 
 # OTA updates
 ota:
