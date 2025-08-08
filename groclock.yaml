@@ -210,16 +210,22 @@ touchscreen:
         format: Touch at (%d, %d)
         args: [touch.x, touch.y]
     - lambda: |-
-        // Only allow double-tap on wake screen (sun page)
-        if (id(current_page) != "sun_page") {
-          return;
-        }
-        
+        // Touch handling:
+        // - Single tap always shows IP (both wake and sleep screens)
+        // - Double tap toggles backlight only on wake screen
         auto now = millis();
+        bool on_wake_screen = id(current_page) == "sun_page";
         if (now - id(last_tap_time) < 500) {
           // Double tap detected
-          id(tap_count) = 0;
-          id(toggle_backlight).execute();
+          if (on_wake_screen) {
+            id(tap_count) = 0;
+            id(toggle_backlight).execute();
+          } else {
+            // On sleep screen, treat as single-tap IP display
+            id(tap_count) = 1;
+            id(ip_display_active) = true;
+            id(ip_display_start_time) = now;
+          }
         } else {
           // Single tap - show IP address
           id(tap_count) = 1;
@@ -620,11 +626,25 @@ datetime:
               struct tm *tm_now = localtime(&current_ts);
               int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
               unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
-              
-              unsigned int sleep_ts = today_start_ts + (id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60);
-              unsigned int wake_ts = today_start_ts + (id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
-              if (wake_ts <= sleep_ts) wake_ts += 86400;
-              
+              // Overnight-aware window
+              unsigned int sleep_sec = id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60;
+              unsigned int wake_sec = id(wake_time_1).hour*3600 + id(wake_time_1).minute*60;
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today = today_start_ts + wake_sec;
+              unsigned int sleep_ts;
+              unsigned int wake_ts;
+              if (wake_ts_today <= sleep_ts_today) {
+                if (current_ts < wake_ts_today) {
+                  sleep_ts = sleep_ts_today - 86400;
+                  wake_ts = wake_ts_today;
+                } else {
+                  sleep_ts = sleep_ts_today;
+                  wake_ts = wake_ts_today + 86400;
+                }
+              } else {
+                sleep_ts = sleep_ts_today;
+                wake_ts = wake_ts_today;
+              }
               if (current_ts >= sleep_ts && current_ts < wake_ts) {
                 id(screen_sleep).execute();
               }
@@ -665,19 +685,35 @@ datetime:
               int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
               unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
               
-              unsigned int sleep_ts = today_start_ts + (id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60);
-              unsigned int wake_ts = today_start_ts + (id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
-              if (wake_ts <= sleep_ts) wake_ts += 86400;
-              
+              // Wake triggers at today's configured time; no overnight offset needed here
+              unsigned int wake_ts_today = today_start_ts + (id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
               // Check if we just reached wake time
-              if (current_ts >= wake_ts && current_ts < wake_ts + 60) { // Within 1 minute of wake time
+              if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
                 id(screen_wake).execute();
               }
               
               // If we're currently in sleep mode, recalculate star display with new wake time
-              if (id(in_sleep_period) && current_ts >= sleep_ts && current_ts < wake_ts) {
-                id(total_duration_sec) = wake_ts - sleep_ts;
-                float elapsed = current_ts - sleep_ts;
+              // Determine the active overnight-aware window for recalculation
+              unsigned int sleep_sec = id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60;
+              unsigned int wake_sec = id(wake_time_1).hour*3600 + id(wake_time_1).minute*60;
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+              unsigned int win_sleep_ts, win_wake_ts;
+              if (wake_ts_today2 <= sleep_ts_today) {
+                if (current_ts < wake_ts_today2) {
+                  win_sleep_ts = sleep_ts_today - 86400;
+                  win_wake_ts = wake_ts_today2;
+                } else {
+                  win_sleep_ts = sleep_ts_today;
+                  win_wake_ts = wake_ts_today2 + 86400;
+                }
+              } else {
+                win_sleep_ts = sleep_ts_today;
+                win_wake_ts = wake_ts_today2;
+              }
+              if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                float elapsed = current_ts - win_sleep_ts;
                 float time_per_star = id(total_duration_sec) / 12.0;
                 int sections_passed = elapsed / time_per_star;
                 id(last_sections_passed) = sections_passed;
@@ -713,11 +749,25 @@ datetime:
                     struct tm *tm_now = localtime(&current_ts);
                     int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
                     unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
-                    
-                    unsigned int sleep_ts = today_start_ts + (id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60);
-                    unsigned int wake_ts = today_start_ts + (id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
-                    if (wake_ts <= sleep_ts) wake_ts += 86400;
-                    
+                    // Overnight-aware window
+                    unsigned int sleep_sec = id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60;
+                    unsigned int wake_sec = id(wake_time_2).hour*3600 + id(wake_time_2).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today = today_start_ts + wake_sec;
+                    unsigned int sleep_ts;
+                    unsigned int wake_ts;
+                    if (wake_ts_today <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today) {
+                        sleep_ts = sleep_ts_today - 86400;
+                        wake_ts = wake_ts_today;
+                      } else {
+                        sleep_ts = sleep_ts_today;
+                        wake_ts = wake_ts_today + 86400;
+                      }
+                    } else {
+                      sleep_ts = sleep_ts_today;
+                      wake_ts = wake_ts_today;
+                    }
                     if (current_ts >= sleep_ts && current_ts < wake_ts) {
                       id(screen_sleep).execute();
                     }
@@ -748,20 +798,35 @@ datetime:
                     struct tm *tm_now = localtime(&current_ts);
                     int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
                     unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
-                    
-                    unsigned int sleep_ts = today_start_ts + (id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60);
-                    unsigned int wake_ts = today_start_ts + (id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
-                    if (wake_ts <= sleep_ts) wake_ts += 86400;
-                    
+                    // Wake triggers at today's configured time; no overnight offset needed here
+                    unsigned int wake_ts_today = today_start_ts + (id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
                     // Check if we just reached wake time
-                    if (current_ts >= wake_ts && current_ts < wake_ts + 60) { // Within 1 minute of wake time
+                    if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
                       id(screen_wake).execute();
                     }
                     
                     // If we're currently in sleep mode, recalculate star display with new wake time
-                    if (id(in_sleep_period) && current_ts >= sleep_ts && current_ts < wake_ts) {
-                      id(total_duration_sec) = wake_ts - sleep_ts;
-                      float elapsed = current_ts - sleep_ts;
+                    // Determine the active overnight-aware window for recalculation
+                    unsigned int sleep_sec = id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60;
+                    unsigned int wake_sec = id(wake_time_2).hour*3600 + id(wake_time_2).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+                    unsigned int win_sleep_ts, win_wake_ts;
+                    if (wake_ts_today2 <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today2) {
+                        win_sleep_ts = sleep_ts_today - 86400;
+                        win_wake_ts = wake_ts_today2;
+                      } else {
+                        win_sleep_ts = sleep_ts_today;
+                        win_wake_ts = wake_ts_today2 + 86400;
+                      }
+                    } else {
+                      win_sleep_ts = sleep_ts_today;
+                      win_wake_ts = wake_ts_today2;
+                    }
+                    if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                      id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                      float elapsed = current_ts - win_sleep_ts;
                       float time_per_star = id(total_duration_sec) / 12.0;
                       int sections_passed = elapsed / time_per_star;
                       id(last_sections_passed) = sections_passed;
@@ -797,11 +862,25 @@ datetime:
                     struct tm *tm_now = localtime(&current_ts);
                     int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
                     unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
-                    
-                    unsigned int sleep_ts = today_start_ts + (id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60);
-                    unsigned int wake_ts = today_start_ts + (id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
-                    if (wake_ts <= sleep_ts) wake_ts += 86400;
-                    
+                    // Overnight-aware window
+                    unsigned int sleep_sec = id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60;
+                    unsigned int wake_sec = id(wake_time_3).hour*3600 + id(wake_time_3).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today = today_start_ts + wake_sec;
+                    unsigned int sleep_ts;
+                    unsigned int wake_ts;
+                    if (wake_ts_today <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today) {
+                        sleep_ts = sleep_ts_today - 86400;
+                        wake_ts = wake_ts_today;
+                      } else {
+                        sleep_ts = sleep_ts_today;
+                        wake_ts = wake_ts_today + 86400;
+                      }
+                    } else {
+                      sleep_ts = sleep_ts_today;
+                      wake_ts = wake_ts_today;
+                    }
                     if (current_ts >= sleep_ts && current_ts < wake_ts) {
                       id(screen_sleep).execute();
                     }
@@ -832,20 +911,35 @@ datetime:
                     struct tm *tm_now = localtime(&current_ts);
                     int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
                     unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
-                    
-                    unsigned int sleep_ts = today_start_ts + (id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60);
-                    unsigned int wake_ts = today_start_ts + (id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
-                    if (wake_ts <= sleep_ts) wake_ts += 86400;
-                    
+                    // Wake triggers at today's configured time; no overnight offset needed here
+                    unsigned int wake_ts_today = today_start_ts + (id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
                     // Check if we just reached wake time
-                    if (current_ts >= wake_ts && current_ts < wake_ts + 60) { // Within 1 minute of wake time
+                    if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
                       id(screen_wake).execute();
                     }
                     
                     // If we're currently in sleep mode, recalculate star display with new wake time
-                    if (id(in_sleep_period) && current_ts >= sleep_ts && current_ts < wake_ts) {
-                      id(total_duration_sec) = wake_ts - sleep_ts;
-                      float elapsed = current_ts - sleep_ts;
+                    // Determine the active overnight-aware window for recalculation
+                    unsigned int sleep_sec = id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60;
+                    unsigned int wake_sec = id(wake_time_3).hour*3600 + id(wake_time_3).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+                    unsigned int win_sleep_ts, win_wake_ts;
+                    if (wake_ts_today2 <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today2) {
+                        win_sleep_ts = sleep_ts_today - 86400;
+                        win_wake_ts = wake_ts_today2;
+                      } else {
+                        win_sleep_ts = sleep_ts_today;
+                        win_wake_ts = wake_ts_today2 + 86400;
+                      }
+                    } else {
+                      win_sleep_ts = sleep_ts_today;
+                      win_wake_ts = wake_ts_today2;
+                    }
+                    if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                      id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                      float elapsed = current_ts - win_sleep_ts;
                       float time_per_star = id(total_duration_sec) / 12.0;
                       int sections_passed = elapsed / time_per_star;
                       id(last_sections_passed) = sections_passed;
@@ -922,48 +1016,84 @@ interval:
                 unsigned int new_sleep_start = 0;
                 unsigned int new_sleep_end = 0;
                 
-                // Check timer 1 changes
+                // Check timer 1 changes (overnight-aware)
                 if (current_sleep_1 != id(last_sleep_time_1) || current_wake_1 != id(last_wake_time_1)) {
-                  unsigned int sleep_ts1 = today_start_ts + current_sleep_1;
-                  unsigned int wake_ts1 = today_start_ts + current_wake_1;
-                  if (wake_ts1 <= sleep_ts1) wake_ts1 += 86400;
-                  
-                  if (current_ts >= sleep_ts1 && current_ts < wake_ts1) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_1;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_1;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
                     times_changed = true;
-                    new_sleep_start = sleep_ts1;
-                    new_sleep_end = wake_ts1;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
                   }
                   id(last_sleep_time_1) = current_sleep_1;
                   id(last_wake_time_1) = current_wake_1;
                 }
                 
-                // Check timer 2 changes
+                // Check timer 2 changes (overnight-aware)
                 if (!times_changed && id(sleep_2_enable).state && 
                     (current_sleep_2 != id(last_sleep_time_2) || current_wake_2 != id(last_wake_time_2))) {
-                  unsigned int sleep_ts2 = today_start_ts + current_sleep_2;
-                  unsigned int wake_ts2 = today_start_ts + current_wake_2;
-                  if (wake_ts2 <= sleep_ts2) wake_ts2 += 86400;
-                  
-                  if (current_ts >= sleep_ts2 && current_ts < wake_ts2) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_2;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_2;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
                     times_changed = true;
-                    new_sleep_start = sleep_ts2;
-                    new_sleep_end = wake_ts2;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
                   }
                   id(last_sleep_time_2) = current_sleep_2;
                   id(last_wake_time_2) = current_wake_2;
                 }
                 
-                // Check timer 3 changes
+                // Check timer 3 changes (overnight-aware)
                 if (!times_changed && id(sleep_3_enable).state && 
                     (current_sleep_3 != id(last_sleep_time_3) || current_wake_3 != id(last_wake_time_3))) {
-                  unsigned int sleep_ts3 = today_start_ts + current_sleep_3;
-                  unsigned int wake_ts3 = today_start_ts + current_wake_3;
-                  if (wake_ts3 <= sleep_ts3) wake_ts3 += 86400;
-                  
-                  if (current_ts >= sleep_ts3 && current_ts < wake_ts3) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_3;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_3;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
                     times_changed = true;
-                    new_sleep_start = sleep_ts3;
-                    new_sleep_end = wake_ts3;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
                   }
                   id(last_sleep_time_3) = current_sleep_3;
                   id(last_wake_time_3) = current_wake_3;
@@ -999,19 +1129,34 @@ interval:
               auto check_sleep_period = [&](unsigned int sleep_sec, unsigned int wake_sec, bool enabled) -> bool {
                 if (!enabled) return false;
                 
-                unsigned int sleep_ts = today_start_ts + sleep_sec;
-                unsigned int wake_ts = today_start_ts + wake_sec;
+                // Build candidate window taking into account periods that span midnight
+                unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                unsigned int wake_ts_today = today_start_ts + wake_sec;
+                unsigned int candidate_sleep_ts = 0;
+                unsigned int candidate_wake_ts = 0;
                 
-                // Handle overnight sleep periods
-                if (wake_ts <= sleep_ts) {
-                  wake_ts += 86400;
+                if (wake_ts_today <= sleep_ts_today) {
+                  // Overnight period
+                  if (current_ts < wake_ts_today) {
+                    // After midnight, before today's wake → period started yesterday
+                    candidate_sleep_ts = sleep_ts_today - 86400;
+                    candidate_wake_ts = wake_ts_today;
+                  } else {
+                    // Before midnight or after today's wake → next wake is tomorrow
+                    candidate_sleep_ts = sleep_ts_today;
+                    candidate_wake_ts = wake_ts_today + 86400;
+                  }
+                } else {
+                  // Same-day period
+                  candidate_sleep_ts = sleep_ts_today;
+                  candidate_wake_ts = wake_ts_today;
                 }
                 
                 // Check if current time is within this sleep period
-                if (current_ts >= sleep_ts && current_ts < wake_ts) {
+                if (current_ts >= candidate_sleep_ts && current_ts < candidate_wake_ts) {
                   currently_in_sleep = true;
-                  current_sleep_start = sleep_ts;
-                  current_sleep_end = wake_ts;
+                  current_sleep_start = candidate_sleep_ts;
+                  current_sleep_end = candidate_wake_ts;
                   return true;
                 }
                 
@@ -1306,38 +1451,56 @@ script:
             int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
             unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
             
-            // Find the current sleep period
+            // Find the current sleep period (overnight-aware)
             unsigned int sleep_start = 0;
             unsigned int sleep_end = 0;
+            auto compute_window = [&](unsigned int sleep_sec, unsigned int wake_sec) {
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today = today_start_ts + wake_sec;
+              unsigned int cand_sleep = 0;
+              unsigned int cand_wake = 0;
+              if (wake_ts_today <= sleep_ts_today) {
+                if (current_ts < wake_ts_today) {
+                  cand_sleep = sleep_ts_today - 86400;
+                  cand_wake = wake_ts_today;
+                } else {
+                  cand_sleep = sleep_ts_today;
+                  cand_wake = wake_ts_today + 86400;
+                }
+              } else {
+                cand_sleep = sleep_ts_today;
+                cand_wake = wake_ts_today;
+              }
+              return std::pair<unsigned int, unsigned int>(cand_sleep, cand_wake);
+            };
             
             // Check timer 1 (always enabled)
-            unsigned int sleep_ts1 = today_start_ts + (id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60);
-            unsigned int wake_ts1 = today_start_ts + (id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
-            if (wake_ts1 <= sleep_ts1) wake_ts1 += 86400;
-            if (current_ts >= sleep_ts1 && current_ts < wake_ts1) {
-              sleep_start = sleep_ts1;
-              sleep_end = wake_ts1;
+            {
+              auto w = compute_window(id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60,
+                                      id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
+              }
             }
             
             // Check timer 2 if enabled
             if (sleep_start == 0 && id(sleep_2_enable).state) {
-              unsigned int sleep_ts2 = today_start_ts + (id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60);
-              unsigned int wake_ts2 = today_start_ts + (id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
-              if (wake_ts2 <= sleep_ts2) wake_ts2 += 86400;
-              if (current_ts >= sleep_ts2 && current_ts < wake_ts2) {
-                sleep_start = sleep_ts2;
-                sleep_end = wake_ts2;
+              auto w = compute_window(id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60,
+                                      id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
               }
             }
             
             // Check timer 3 if enabled
             if (sleep_start == 0 && id(sleep_3_enable).state) {
-              unsigned int sleep_ts3 = today_start_ts + (id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60);
-              unsigned int wake_ts3 = today_start_ts + (id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
-              if (wake_ts3 <= sleep_ts3) wake_ts3 += 86400;
-              if (current_ts >= sleep_ts3 && current_ts < wake_ts3) {
-                sleep_start = sleep_ts3;
-                sleep_end = wake_ts3;
+              auto w = compute_window(id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60,
+                                      id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
               }
             }
             
