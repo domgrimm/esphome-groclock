@@ -530,6 +530,22 @@ text_sensor:
         sorting_weight: 5
         sorting_group_id: diag_group
   - platform: template
+    name: "Current Screen"
+    id: current_screen
+    icon: "mdi:monitor"
+    update_interval: 2s
+    lambda: |-
+      if (id(startup_phase) == "initializing") {
+        return std::string("Startup");
+      }
+      if (id(startup_phase) == "setup") {
+        return std::string("Setup");
+      }
+      if (id(in_sleep_period)) {
+        return std::string("Sleep");
+      }
+      return std::string("Wake");
+  - platform: template
     name: "Device Current Time"
     icon: "mdi:clock"
     update_interval: 60s
@@ -1192,6 +1208,7 @@ interval:
                 id(in_sleep_period) = true;
                 id(current_page) = "sleep_page";
                 id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_NONE, 0);
+                // Ensure sun overlay on sleep page is hidden (kept hidden by default)
                 
                 // Clear manually turned off flag to allow screen to turn on for sleep period
                 id(manually_turned_off) = false;
@@ -1282,6 +1299,8 @@ interval:
               id(screen_off).execute();
             }
           }
+
+          // No wake transition blending; immediate page and brightness handling
           
           // IP display timer logic
           if (id(ip_display_active)) {
@@ -1524,6 +1543,7 @@ script:
           if (id(startup_phase) != "initializing" && id(startup_phase) != "setup" && !id(in_sleep_period)) {
             id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
             id(current_page) = "sun_page";
+            // Ensure sun overlay on sleep page remains hidden
           }
       - if:
           condition:
@@ -1544,6 +1564,9 @@ script:
       - light.turn_off: screen_brightness
       - lambda: |-
           id(screen_off_timer_active) = false;
+          // Mark as manually turned off so periodic brightness logic doesn't turn it back on
+          id(backlight_off) = true;
+          id(manually_turned_off) = true;
   - id: toggle_backlight
     then:
       - lambda: |-
@@ -1594,23 +1617,6 @@ light:
 
 # --- Brightness Sliders ---
 number:
-  - platform: template
-    name: "Current Screen Brightness"
-    id: current_brightness
-    icon: "mdi:brightness-6"
-    min_value: 0
-    max_value: 100
-    step: 1
-    lambda: |-
-      return id(screen_brightness).current_values.get_brightness() * 100.0;
-    set_action:
-      then:
-        - light.turn_on:
-            id: screen_brightness
-            brightness: !lambda "return x / 100.0;"
-    web_server:
-      sorting_weight: 1
-      sorting_group_id: brightness_group
   - platform: template
     name: "Sleep Screen Brightness"
     id: sleep_brightness
