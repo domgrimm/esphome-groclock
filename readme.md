@@ -32,6 +32,13 @@ A complete ESPHome project that emulates a Groclock toddler sleep trainer, desig
 - **Screen Off Timer**: Automatically turn off screen after configurable delay
 - **Auto Ambient Lighting**: Toggle automatic ambient lighting that matches screen colors
 
+### **Audio Controls (Ball V2 Only)**
+- **Audio Volume**: Control media player volume (0-100%)
+- **Audio Mute**: Toggle audio mute on/off
+- **Audio Play/Pause**: Control media player playback state
+- **Audio URL Input**: Enter web address of audio file to play
+- **Play Audio URL**: Play audio from user-provided web URL
+
 ### **Network & Configuration**
 - **WiFi Connection**: Primary network with fallback hotspot
 - **Web Interface**: Full web server with organized controls
@@ -140,7 +147,8 @@ Match your mounting orientation:
 - **Single Press**: Show IP address for 10 seconds
 - **Double Press**: Toggle backlight on/off (wake screen only)
 - **Ambient Lighting**: Automatic color matching or manual control
-- **Media Player**: Audio playback support via Home Assistant
+- **Media Player**: Audio playback support via Home Assistant and web interface
+- **Audio Controls**: Volume, mute, play/pause, and URL-based audio playback
 - **Web Interface**: Full control via ESPHome web interface
 
 ## ⚙️ Configuration
@@ -163,6 +171,13 @@ Configure up to 3 sleep/wake time pairs:
 - **Natural Transitions**: Screen turns on automatically for sleep/wake period changes
 - **Double Tap/Press**: Toggle screen on/off (wake screen only)
 - **Ambient Lighting**: Automatic color matching with screen or manual control (Ball V2 only)
+
+### **Audio Configuration (Ball V2 Only)**
+- **Volume Control**: Adjust media player volume from 0-100%
+- **Mute Function**: Toggle audio mute (sets volume to 0% and restores when unmuted)
+- **Playback Control**: Play/pause media player functionality
+- **URL Playback**: Enter web URL of audio file and play directly
+- **Speaker Enable**: Hardware switch to enable/disable audio output
 
 ### **Timezone**
 Select your timezone from the comprehensive list in `tz.yaml`
@@ -194,6 +209,8 @@ Select your timezone from the comprehensive list in `tz.yaml`
 - **OTA Updates Failing**: Ensure stable WiFi connection during updates
 - **Screen Won't Turn On**: Try double-tapping/double-pressing the screen
 - **No Audio Output**: Check speaker enable switch and audio configuration (Ball V2 only)
+- **Audio Controls Not Working**: Verify media player configuration and web server audio group (Ball V2 only)
+- **URL Playback Issues**: Ensure audio file URL is accessible and in supported format (Ball V2 only)
 - **Ambient Lighting Issues**: Verify auto ambient lighting toggle and LED configuration (Ball V2 only)
 
 ## 📁 File Structure
