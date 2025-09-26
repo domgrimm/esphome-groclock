@@ -1865,7 +1865,7 @@ switch:
   - platform: gpio
     name: Speaker Enable
     icon: "mdi:speaker"
-    entity_category: config
+    internal: true
     pin: GPIO46
     restore_mode: RESTORE_DEFAULT_ON
   - platform: template
