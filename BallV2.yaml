@@ -1815,6 +1815,19 @@ number:
             id: external_media_player
             volume: !lambda "return x / 100.0;"
 
+text:
+  - platform: template
+    name: "Audio URL Input"
+    id: audio_url_input
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    web_server:
+      sorting_weight: 5
+      sorting_group_id: audio_group
+
 button:
   - platform: restart
     name: "Restart Device"
@@ -1835,6 +1848,18 @@ button:
       then:
         - media_player.toggle:
             id: external_media_player
+  - platform: template
+    name: "Play Audio URL"
+    id: play_audio_url_button
+    icon: "mdi:play-network"
+    web_server:
+      sorting_weight: 4
+      sorting_group_id: audio_group
+    on_press:
+      then:
+        - media_player.play_media:
+            id: external_media_player
+            media_url: !lambda "return id(audio_url_input).state;"
 
 switch:
   - platform: gpio
