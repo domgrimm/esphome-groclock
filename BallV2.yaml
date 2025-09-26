@@ -1,0 +1,1840 @@
+substitutions:
+  name: "groclock-ball"
+  friendly_name: "Groclock Ball"
+  
+  # Screen rotation: 0, 90, 180, or 270 degrees
+  screen_rotation: "0"
+  
+  star_icon: "\U000F04D2"
+  sun_icon: "\U000F0599"
+  moon_icon: "\U000F0594"
+
+  lcd_font: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/LCD.ttf"
+  sun_image: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/sun.png"
+  star_image: "https://github.com/domgrimm/esphome-groclock/raw/refs/heads/main/resources/star.png"
+
+  sun_background_color: "5DC5FC"
+  sleep_background_color: "FFCE2B"
+
+packages:
+  tz: github://domgrimm/esphome-groclock/resources/tz.yaml@main
+
+# API for Home Assistant integration
+api:
+  reboot_timeout: 0s
+
+# OTA updates
+ota:
+  - platform: esphome 
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  platformio_options:
+    board_build.flash_mode: dio
+  on_boot:
+    - script.execute: show_startup
+
+# ESP32 Platform Configuration
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: INFO
+
+# WiFi Configuration
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+      priority: 1
+  ap:
+    ssid: "${name} Fallback"
+    ap_timeout: 30s
+  reboot_timeout: 60s
+  power_save_mode: NONE
+
+captive_portal:
+
+web_server:
+  version: 3
+  log: True
+  sorting_groups:
+    - id: time_group
+      name: "Time Settings"
+      sorting_weight: 2
+    - id: brightness_group
+      name: "Brightness Controls"
+      sorting_weight: 3
+    - id: diag_group
+      name: "Diagnostics"
+      sorting_weight: 60
+
+# --- Images ---
+image:
+  - file: ${sun_image}
+    id: sun_image
+    type: RGB565
+    transparency: alpha_channel
+  - file: ${star_image}
+    id: star_image
+    type: RGB565
+    transparency: alpha_channel
+
+# --- Fonts ---
+font:
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: small_stars_font
+    size: 35
+    glyphs: ["${star_icon}"]
+  - file: ${lcd_font}
+    id: lcd_time_font
+    size: 30
+    glyphs: "0123456789:-./abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
+  - file: ${lcd_font}
+    id: lcd_time_font_small
+    size: 15
+    glyphs: "0123456789:-./abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
+
+# --- Globals ---
+globals:
+  - id: star_visible
+    type: std::array<bool, 12>
+  - id: last_sections_passed
+    type: int
+    initial_value: '-1'
+  - id: wake_screen_start_time
+    type: unsigned int
+    initial_value: '0'
+  - id: screen_off_timer_active
+    type: bool
+    initial_value: 'false'
+  - id: saved_posix_tz
+    type: std::string
+    restore_value: True
+  - id: last_button_time
+    type: unsigned long
+    initial_value: '0'
+  - id: button_count
+    type: int
+    initial_value: '0'
+  - id: backlight_off
+    type: bool
+    initial_value: 'false'
+  - id: manually_turned_off
+    type: bool
+    initial_value: 'false'
+  - id: current_page
+    type: std::string
+    initial_value: '"sun_page"'
+  - id: ip_display_active
+    type: bool
+    initial_value: 'false'
+  - id: ip_display_start_time
+    type: unsigned long
+    initial_value: '0'
+  - id: startup_phase
+    type: std::string
+    initial_value: '"initializing"'
+  - id: init_dots_count
+    type: int
+    initial_value: '0'
+  - id: last_dot_update
+    type: unsigned long
+    initial_value: '0'
+  - id: startup_time
+    type: unsigned long
+    initial_value: '0'
+  - id: in_sleep_period
+    type: bool
+    initial_value: 'false'
+  - id: total_duration_sec
+    type: unsigned int
+    initial_value: '0'
+  - id: last_sleep_time_1
+    type: unsigned int
+    initial_value: '0'
+  - id: last_wake_time_1
+    type: unsigned int
+    initial_value: '0'
+  - id: last_sleep_time_2
+    type: unsigned int
+    initial_value: '0'
+  - id: last_wake_time_2
+    type: unsigned int
+    initial_value: '0'
+  - id: last_sleep_time_3
+    type: unsigned int
+    initial_value: '0'
+  - id: last_wake_time_3
+    type: unsigned int
+    initial_value: '0'
+
+# --- I2C ---
+i2c:
+  - id: bus_a
+    sda: GPIO15
+    scl: GPIO14
+    scan: true
+  - id: bus_b
+    sda: GPIO11
+    scl: GPIO7
+    scan: true
+    #frequency: 100kHz
+
+# --- Buttons ---
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      ignore_strapping_warning: true
+      inverted: true
+    id: left_top_button
+    internal: true
+    on_press:
+      - logger.log: "Button pressed"
+      - lambda: |-
+          // Button handling:
+          // - Single press shows IP (both wake and sleep screens)
+          // - Double press toggles backlight only on wake screen
+          auto now = millis();
+          bool on_wake_screen = id(current_page) == "sun_page";
+          if (now - id(last_button_time) < 500) {
+            // Double press detected
+            if (on_wake_screen) {
+              id(button_count) = 0;
+              id(toggle_backlight).execute();
+            } else {
+              // On sleep screen, treat as single-press IP display
+              id(button_count) = 1;
+              id(ip_display_active) = true;
+              id(ip_display_start_time) = now;
+            }
+          } else {
+            // Single press - show IP address
+            id(button_count) = 1;
+            id(ip_display_active) = true;
+            id(ip_display_start_time) = now;
+          }
+          id(last_button_time) = now;
+
+# --- SPI & Display ---
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO4
+    mosi_pin: GPIO2
+
+display:
+  - platform: ili9xxx
+    id: screen
+    model: GC9A01A
+    update_interval: never
+    auto_clear_enabled: false
+    spi_id: lcd_spi
+    spi_mode: MODE3
+    data_rate: 40MHz
+    color_order: RGB
+    invert_colors: true
+    rotation: ${screen_rotation}
+    dimensions:
+      width: 240
+      height: 240
+    cs_pin: GPIO5
+    dc_pin: GPIO47
+    reset_pin:
+      number: GPIO38
+
+# --- Audio ---
+i2s_audio:
+  - id: i2s_audio_bus
+    i2s_lrclk_pin: GPIO45
+    i2s_bclk_pin: GPIO9
+    i2s_mclk_pin: GPIO16
+
+audio_dac:
+  - platform: es8311
+    i2c_id: bus_a
+    id: es8311_dac
+    bits_per_sample: 16bit
+    sample_rate: 16000
+
+microphone:
+  - platform: i2s_audio
+    id: i2s_mics
+    sample_rate: 16000
+    i2s_din_pin: GPIO10
+    bits_per_sample: 16bit
+    adc_type: external
+    channel: left
+
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    i2s_dout_pin: GPIO8
+    dac_type: external
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    channel: mono
+    audio_dac: es8311_dac
+    buffer_duration: 100ms
+  - platform: mixer
+    id: mixer_speaker_id
+    output_speaker: i2s_audio_speaker
+    source_speakers:
+      - id: announcement_mixer
+      - id: media_mixer
+  - platform: resampler
+    id: announcement_resampler
+    output_speaker: announcement_mixer
+  - platform: resampler
+    id: media_resampler
+    output_speaker: media_mixer
+
+media_player:
+  - platform: speaker
+    name: "Groclock Audio"
+    id: external_media_player
+    icon: "mdi:speaker"
+    announcement_pipeline:
+      speaker: announcement_resampler
+      format: FLAC
+      sample_rate: 16000
+      num_channels: 1
+    media_pipeline:
+      speaker: media_resampler
+      format: FLAC
+      sample_rate: 16000
+      num_channels: 1
+
+# --- LVGL ---
+lvgl:
+  id: lvgl_comp
+  displays:
+    - screen
+  buffer_size: 15%
+  color_depth: 16
+
+  style_definitions:
+    - id: sun_style
+      bg_color: 0x${sun_background_color}
+      text_color: 0xFFFFFF
+      bg_opa: COVER
+      radius: 120
+    - id: sleep_style
+      bg_color: 0x${sleep_background_color}
+      text_color: 0xFFFFFF
+      bg_opa: COVER
+      radius: 120
+    - id: time_style
+      text_color: 0xAAAAAA
+      text_font: lcd_time_font
+      text_align: CENTER
+    - id: time_style_sleep
+      text_color: 0xD9D9D9
+      text_font: lcd_time_font
+      text_align: CENTER
+    - id: startup_style
+      bg_color: 0x000000
+      text_color: 0xFFFFFF
+      bg_opa: COVER
+      radius: 120
+    - id: startup_text_style
+      text_color: 0xFFFFFF
+      text_font: lcd_time_font
+      text_align: CENTER
+  pages:
+    - id: startup_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [startup_style]
+            widgets:
+              - label:
+                  id: startup_label
+                  align: LEFT_MID
+                  text_font: lcd_time_font
+                  styles: [startup_text_style]
+                  text: "Initializing..."
+    - id: setup_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [startup_style]
+            widgets:
+              - label:
+                  id: setup_label_1
+                  align: CENTER
+                  y: -40
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "Groclock setup"
+              - label:
+                  id: setup_label_2
+                  align: CENTER
+                  y: -20
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "Connect to wifi:"
+              - label:
+                  id: setup_label_3
+                  align: CENTER
+                  y: 0
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "${name} Fallback"
+              - label:
+                  id: setup_label_4
+                  align: CENTER
+                  y: 20
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "visit:"
+              - label:
+                  id: setup_label_5
+                  align: CENTER
+                  y: 40
+                  text_font: lcd_time_font_small
+                  styles: [startup_text_style]
+                  text: "http://192.168.4.1"
+    - id: sun_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [sun_style]
+            widgets:
+              - image:
+                  id: sun_image_img
+                  src: sun_image
+                  align: CENTER
+                  zoom: 0.5
+              - label:
+                  id: time_label_sun
+                  align: BOTTOM_MID
+                  y: 8
+                  x: 0
+                  text_font: lcd_time_font
+                  styles: [time_style]
+                  text: !lambda |-
+                    if (id(sntp_time).now().is_valid()) {
+                      char buf[16];
+                      time_t now_ts = id(sntp_time).now().timestamp;
+                      struct tm *tm_info = localtime(&now_ts);
+                      strftime(buf, sizeof(buf), "%I:%M%p", tm_info);
+                      return std::string(buf);
+                    } else {
+                      return std::string("--:--");
+                    }
+                  hidden: false
+              - label:
+                  id: ip_label_sun
+                  align: CENTER
+                  y: -40
+                  x: 0
+                  text_font: lcd_time_font_small
+                  styles: [time_style]
+                  text: "192.168.1.1"
+                  hidden: true
+    - id: sleep_page
+      widgets:
+        - obj:
+            scrollable: False
+            width: 100%
+            height: 100%
+            styles: [sleep_style]
+            widgets:
+              - label:
+                  id: time_label_sleep
+                  align: BOTTOM_MID
+                  y: -20
+                  text_font: lcd_time_font
+                  styles: [time_style_sleep]
+                  text: !lambda |-
+                    if (id(sntp_time).now().is_valid()) {
+                      char buf[16];
+                      time_t now_ts = id(sntp_time).now().timestamp;
+                      struct tm *tm_info = localtime(&now_ts);
+                      strftime(buf, sizeof(buf), "%I:%M%p", tm_info);
+                      return std::string(buf);
+                    } else {
+                      return std::string("--:--");
+                    }
+                  hidden: false
+              - label:
+                  id: ip_label_sleep
+                  align: CENTER
+                  y: -40
+                  x: 0
+                  text_font: lcd_time_font_small
+                  styles: [time_style_sleep]
+                  text: "192.168.1.1"
+                  hidden: true
+              - image:
+                  id: star_image_img
+                  src: star_image
+                  align: CENTER
+                  zoom: 0.4
+              # 12 stars positioned in a circle (1pm position is star_0, clockwise) - scaled for 240x240 display
+              - label: { id: star_0,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 54, y: -93, hidden: false }   # 1pm
+              - label: { id: star_1,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 93, y: -54, hidden: false }   # 2pm
+              - label: { id: star_2,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 108, y: 0, hidden: false }     # 3pm
+              - label: { id: star_3,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 93, y: 54, hidden: false }     # 4pm
+              - label: { id: star_4,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 54, y: 93, hidden: false }     # 5pm
+              - label: { id: star_5,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 0, y: 108, hidden: false }     # 6pm
+              - label: { id: star_6,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -54, y: 93, hidden: false }    # 7pm
+              - label: { id: star_7,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -93, y: 54, hidden: false }    # 8pm
+              - label: { id: star_8,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -108, y: 0, hidden: false }   # 9pm
+              - label: { id: star_9, align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -93, y: -54, hidden: false }   # 10pm
+              - label: { id: star_10, align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: -54, y: -93, hidden: false }  # 11pm
+              - label: { id: star_11,  align: CENTER, text_font: small_stars_font, text: "${star_icon}", x: 0, y: -108, hidden: false }  # 12pm
+
+
+
+
+
+# --- Time ---
+time:
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+
+# --- Sensors ---
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    icon: "mdi:wifi"
+    update_interval: 60s
+    entity_category: diagnostic
+    internal: true
+  - platform: uptime
+    name: "Uptime"
+    id: uptime_sensor
+    icon: "mdi:clock-outline"
+    entity_category: diagnostic
+    internal: true
+    web_server:
+      sorting_group_id: diag_group
+
+  # Reports the WiFi signal strength in %
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Strength"
+    icon: "mdi:wifi-strength-4"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+    web_server:
+      sorting_weight: 2
+      sorting_group_id: diag_group
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      id: ip_address
+      icon: "mdi:ip-network"
+      entity_category: diagnostic
+      web_server:
+        sorting_weight: 4
+        sorting_group_id: diag_group
+    ssid:
+      name: "Connected SSID"
+      icon: "mdi:wifi"
+      entity_category: diagnostic
+      web_server:
+        sorting_weight: 3
+        sorting_group_id: diag_group
+    mac_address:
+      name: "MAC Address"
+      icon: "mdi:network"
+      entity_category: diagnostic
+      web_server:
+        sorting_weight: 5
+        sorting_group_id: diag_group
+  - platform: template
+    name: "Current Screen"
+    id: current_screen
+    icon: "mdi:monitor"
+    update_interval: 2s
+    lambda: |-
+      if (id(startup_phase) == "initializing") {
+        return std::string("Startup");
+      }
+      if (id(startup_phase) == "setup") {
+        return std::string("Setup");
+      }
+      if (id(in_sleep_period)) {
+        return std::string("Sleep");
+      }
+      return std::string("Wake");
+  - platform: template
+    name: "Device Current Time"
+    icon: "mdi:clock"
+    update_interval: 60s
+    web_server:
+      sorting_weight: 1
+      sorting_group_id: time_group
+    lambda: |-
+      auto time = id(sntp_time).now();
+      if (time.is_valid()) {
+        time_t now_ts = time.timestamp;
+        char buffer[16];
+        strftime(buffer, sizeof(buffer), "%H:%M", localtime(&now_ts));
+        return std::string(buffer);
+      } else {
+        return std::string("Waiting for NTP...");
+      }
+  - platform: template
+    name: "Device Uptime"
+    icon: "mdi:clock-outline"
+    update_interval: 60s
+    web_server:
+      sorting_weight: 1
+      sorting_group_id: diag_group
+    lambda: |-
+      unsigned long uptime_seconds = id(uptime_sensor).state;
+      unsigned long weeks = uptime_seconds / (7 * 24 * 3600);
+      unsigned long days = (uptime_seconds % (7 * 24 * 3600)) / (24 * 3600);
+      unsigned long hours = (uptime_seconds % (24 * 3600)) / 3600;
+      unsigned long minutes = (uptime_seconds % 3600) / 60;
+      unsigned long seconds = uptime_seconds % 60;
+      
+      std::string result = "";
+      
+      if (weeks > 0) {
+        result += std::to_string(weeks) + "w ";
+      }
+      if (days > 0 || weeks > 0) {
+        result += std::to_string(days) + "d ";
+      }
+      if (hours > 0 || days > 0 || weeks > 0) {
+        result += std::to_string(hours) + "h ";
+      }
+      if (minutes > 0 || hours > 0 || days > 0 || weeks > 0) {
+        result += std::to_string(minutes) + "m ";
+      }
+      result += std::to_string(seconds) + "s";
+      
+      return result;
+
+# --- Show Current Time on Device ---
+select:
+  - platform: template
+    id: view_time
+    name: Show Time
+    icon: "mdi:clock"
+    optimistic: True
+    restore_value: True
+    options:
+      - "Off"
+      - "Digital"
+    on_value: 
+      then:
+        - if:
+            condition:
+              lambda: 'return x == "Digital";'
+            then:
+              - lvgl.widget.show: time_label_sun
+              - lvgl.widget.show: time_label_sleep
+            else:
+              - lvgl.widget.hide: time_label_sun
+              - lvgl.widget.hide: time_label_sleep
+
+# --- Datetime Pickers ---
+datetime:
+  - platform: template
+    id: sleep_time_1
+    name: Sleep Time 1
+    type: time
+    icon: "mdi:weather-night"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 18, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 3
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - lambda: |-
+            // Check if current time is within this sleep period and switch to sleep page if needed
+            auto now = id(sntp_time).now();
+            if (now.is_valid()) {
+              time_t current_ts = now.timestamp;
+              struct tm *tm_now = localtime(&current_ts);
+              int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+              unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+              // Overnight-aware window
+              unsigned int sleep_sec = id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60;
+              unsigned int wake_sec = id(wake_time_1).hour*3600 + id(wake_time_1).minute*60;
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today = today_start_ts + wake_sec;
+              unsigned int sleep_ts;
+              unsigned int wake_ts;
+              if (wake_ts_today <= sleep_ts_today) {
+                if (current_ts < wake_ts_today) {
+                  sleep_ts = sleep_ts_today - 86400;
+                  wake_ts = wake_ts_today;
+                } else {
+                  sleep_ts = sleep_ts_today;
+                  wake_ts = wake_ts_today + 86400;
+                }
+              } else {
+                sleep_ts = sleep_ts_today;
+                wake_ts = wake_ts_today;
+              }
+              if (current_ts >= sleep_ts && current_ts < wake_ts) {
+                id(screen_sleep).execute();
+              }
+              
+              // If we're currently in sleep mode, recalculate star display with new sleep/wake times
+              if (id(in_sleep_period) && current_ts >= sleep_ts && current_ts < wake_ts) {
+                id(total_duration_sec) = wake_ts - sleep_ts;
+                float elapsed = current_ts - sleep_ts;
+                float time_per_star = id(total_duration_sec) / 12.0;
+                int sections_passed = elapsed / time_per_star;
+                id(last_sections_passed) = sections_passed;
+                
+                for (int i = 0; i < 12; ++i) {
+                  id(star_visible)[i] = (i >= sections_passed);
+                }
+              }
+            }
+  - platform: template
+    id: wake_time_1
+    name: Wake Time 1
+    type: time
+    icon: "mdi:weather-sunny"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 7, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 4
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - lambda: |-
+            // Check if we're exiting a sleep period and switch to wake page if needed
+            auto now = id(sntp_time).now();
+            if (now.is_valid()) {
+              time_t current_ts = now.timestamp;
+              struct tm *tm_now = localtime(&current_ts);
+              int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+              unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+              
+              // Wake triggers at today's configured time; no overnight offset needed here
+              unsigned int wake_ts_today = today_start_ts + (id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
+              // Check if we just reached wake time
+              if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
+                id(screen_wake).execute();
+              }
+              
+              // If we're currently in sleep mode, recalculate star display with new wake time
+              // Determine the active overnight-aware window for recalculation
+              unsigned int sleep_sec = id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60;
+              unsigned int wake_sec = id(wake_time_1).hour*3600 + id(wake_time_1).minute*60;
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+              unsigned int win_sleep_ts, win_wake_ts;
+              if (wake_ts_today2 <= sleep_ts_today) {
+                if (current_ts < wake_ts_today2) {
+                  win_sleep_ts = sleep_ts_today - 86400;
+                  win_wake_ts = wake_ts_today2;
+                } else {
+                  win_sleep_ts = sleep_ts_today;
+                  win_wake_ts = wake_ts_today2 + 86400;
+                }
+              } else {
+                win_sleep_ts = sleep_ts_today;
+                win_wake_ts = wake_ts_today2;
+              }
+              if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                float elapsed = current_ts - win_sleep_ts;
+                float time_per_star = id(total_duration_sec) / 12.0;
+                int sections_passed = elapsed / time_per_star;
+                id(last_sections_passed) = sections_passed;
+                
+                for (int i = 0; i < 12; ++i) {
+                  id(star_visible)[i] = (i >= sections_passed);
+                }
+              }
+            }
+  - platform: template
+    id: sleep_time_2
+    name: Sleep Time 2
+    type: time
+    icon: "mdi:weather-night"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 18, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 6
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - if:
+            condition:
+              switch.is_on: sleep_2_enable
+            then:
+              - lambda: |-
+                  // Check if current time is within this sleep period and switch to sleep page if needed
+                  auto now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    time_t current_ts = now.timestamp;
+                    struct tm *tm_now = localtime(&current_ts);
+                    int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+                    unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+                    // Overnight-aware window
+                    unsigned int sleep_sec = id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60;
+                    unsigned int wake_sec = id(wake_time_2).hour*3600 + id(wake_time_2).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today = today_start_ts + wake_sec;
+                    unsigned int sleep_ts;
+                    unsigned int wake_ts;
+                    if (wake_ts_today <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today) {
+                        sleep_ts = sleep_ts_today - 86400;
+                        wake_ts = wake_ts_today;
+                      } else {
+                        sleep_ts = sleep_ts_today;
+                        wake_ts = wake_ts_today + 86400;
+                      }
+                    } else {
+                      sleep_ts = sleep_ts_today;
+                      wake_ts = wake_ts_today;
+                    }
+                    if (current_ts >= sleep_ts && current_ts < wake_ts) {
+                      id(screen_sleep).execute();
+                    }
+                  }
+  - platform: template
+    id: wake_time_2
+    name: Wake Time 2
+    type: time
+    icon: "mdi:weather-sunny"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 7, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 7
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - if:
+            condition:
+              switch.is_on: sleep_2_enable
+            then:
+              - lambda: |-
+                  // Check if we're exiting a sleep period and switch to wake page if needed
+                  auto now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    time_t current_ts = now.timestamp;
+                    struct tm *tm_now = localtime(&current_ts);
+                    int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+                    unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+                    // Wake triggers at today's configured time; no overnight offset needed here
+                    unsigned int wake_ts_today = today_start_ts + (id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
+                    // Check if we just reached wake time
+                    if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
+                      id(screen_wake).execute();
+                    }
+                    
+                    // If we're currently in sleep mode, recalculate star display with new wake time
+                    // Determine the active overnight-aware window for recalculation
+                    unsigned int sleep_sec = id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60;
+                    unsigned int wake_sec = id(wake_time_2).hour*3600 + id(wake_time_2).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+                    unsigned int win_sleep_ts, win_wake_ts;
+                    if (wake_ts_today2 <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today2) {
+                        win_sleep_ts = sleep_ts_today - 86400;
+                        win_wake_ts = wake_ts_today2;
+                      } else {
+                        win_sleep_ts = sleep_ts_today;
+                        win_wake_ts = wake_ts_today2 + 86400;
+                      }
+                    } else {
+                      win_sleep_ts = sleep_ts_today;
+                      win_wake_ts = wake_ts_today2;
+                    }
+                    if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                      id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                      float elapsed = current_ts - win_sleep_ts;
+                      float time_per_star = id(total_duration_sec) / 12.0;
+                      int sections_passed = elapsed / time_per_star;
+                      id(last_sections_passed) = sections_passed;
+                      
+                      for (int i = 0; i < 12; ++i) {
+                        id(star_visible)[i] = (i >= sections_passed);
+                      }
+                    }
+                  }
+  - platform: template
+    id: sleep_time_3
+    name: Sleep Time 3
+    type: time
+    icon: "mdi:weather-night"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 18, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 9
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - if:
+            condition:
+              switch.is_on: sleep_3_enable
+            then:
+              - lambda: |-
+                  // Check if current time is within this sleep period and switch to sleep page if needed
+                  auto now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    time_t current_ts = now.timestamp;
+                    struct tm *tm_now = localtime(&current_ts);
+                    int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+                    unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+                    // Overnight-aware window
+                    unsigned int sleep_sec = id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60;
+                    unsigned int wake_sec = id(wake_time_3).hour*3600 + id(wake_time_3).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today = today_start_ts + wake_sec;
+                    unsigned int sleep_ts;
+                    unsigned int wake_ts;
+                    if (wake_ts_today <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today) {
+                        sleep_ts = sleep_ts_today - 86400;
+                        wake_ts = wake_ts_today;
+                      } else {
+                        sleep_ts = sleep_ts_today;
+                        wake_ts = wake_ts_today + 86400;
+                      }
+                    } else {
+                      sleep_ts = sleep_ts_today;
+                      wake_ts = wake_ts_today;
+                    }
+                    if (current_ts >= sleep_ts && current_ts < wake_ts) {
+                      id(screen_sleep).execute();
+                    }
+                  }
+  - platform: template
+    id: wake_time_3
+    name: Wake Time 3
+    type: time
+    icon: "mdi:weather-sunny"
+    entity_category: "Config"
+    optimistic: true
+    initial_value: { hour: 7, minute: 00, second: 00 }
+    restore_value: true
+    web_server:
+      sorting_weight: 10
+      sorting_group_id: time_group
+    on_time:
+      then:
+        - if:
+            condition:
+              switch.is_on: sleep_3_enable
+            then:
+              - lambda: |-
+                  // Check if we're exiting a sleep period and switch to wake page if needed
+                  auto now = id(sntp_time).now();
+                  if (now.is_valid()) {
+                    time_t current_ts = now.timestamp;
+                    struct tm *tm_now = localtime(&current_ts);
+                    int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+                    unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+                    // Wake triggers at today's configured time; no overnight offset needed here
+                    unsigned int wake_ts_today = today_start_ts + (id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
+                    // Check if we just reached wake time
+                    if (current_ts >= wake_ts_today && current_ts < wake_ts_today + 60) { // Within 1 minute of wake time
+                      id(screen_wake).execute();
+                    }
+                    
+                    // If we're currently in sleep mode, recalculate star display with new wake time
+                    // Determine the active overnight-aware window for recalculation
+                    unsigned int sleep_sec = id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60;
+                    unsigned int wake_sec = id(wake_time_3).hour*3600 + id(wake_time_3).minute*60;
+                    unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                    unsigned int wake_ts_today2 = today_start_ts + wake_sec;
+                    unsigned int win_sleep_ts, win_wake_ts;
+                    if (wake_ts_today2 <= sleep_ts_today) {
+                      if (current_ts < wake_ts_today2) {
+                        win_sleep_ts = sleep_ts_today - 86400;
+                        win_wake_ts = wake_ts_today2;
+                      } else {
+                        win_sleep_ts = sleep_ts_today;
+                        win_wake_ts = wake_ts_today2 + 86400;
+                      }
+                    } else {
+                      win_sleep_ts = sleep_ts_today;
+                      win_wake_ts = wake_ts_today2;
+                    }
+                    if (id(in_sleep_period) && current_ts >= win_sleep_ts && current_ts < win_wake_ts) {
+                      id(total_duration_sec) = win_wake_ts - win_sleep_ts;
+                      float elapsed = current_ts - win_sleep_ts;
+                      float time_per_star = id(total_duration_sec) / 12.0;
+                      int sections_passed = elapsed / time_per_star;
+                      id(last_sections_passed) = sections_passed;
+                      
+                      for (int i = 0; i < 12; ++i) {
+                        id(star_visible)[i] = (i >= sections_passed);
+                      }
+                    }
+                  }
+
+# --- Interval for Star Timer, Time Updates, and Screen Off Timer ---
+interval:
+  - interval: 10s
+    then:
+      - logger.log: "Device is running - 10 second interval"
+  - interval: 2s
+    then:
+      - lambda: |-
+          // Startup sequence logic
+          if (id(startup_phase) == "initializing") {
+            // Animate the dots every 500ms
+            auto now = millis();
+            if (now - id(last_dot_update) >= 500) {
+              id(last_dot_update) = now;
+              id(init_dots_count) = (id(init_dots_count) + 1) % 4;
+            }
+            
+            // Check if WiFi is connected
+            if (!id(ip_address).get_state().empty() && 
+                (id(ip_address).get_state().find("192.168.") != std::string::npos || 
+                 id(ip_address).get_state().find("10.") != std::string::npos ||
+                 id(ip_address).get_state().find("172.") != std::string::npos)) {
+              id(startup_phase) = "connected";
+              id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+            // Check if fallback hotspot is active (no IP means hotspot mode)
+            // Wait 30 seconds before showing setup page
+            else if (id(ip_address).get_state().empty() && (millis() - id(startup_time)) >= 30000) {
+              id(startup_phase) = "setup";
+              id(lvgl_comp).show_page(1, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+          }
+          else if (id(startup_phase) == "setup") {
+            // Check if WiFi is now connected (user selected network)
+            if (!id(ip_address).get_state().empty() && 
+                (id(ip_address).get_state().find("192.168.") != std::string::npos || 
+                 id(ip_address).get_state().find("10.") != std::string::npos ||
+                 id(ip_address).get_state().find("172.") != std::string::npos)) {
+              id(startup_phase) = "connected";
+              id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            }
+          }
+          
+          // Sleep timer check - only run if not in startup phase
+          if (id(startup_phase) != "initializing" && id(startup_phase) != "setup") {
+            auto now = id(sntp_time).now();
+            if (now.is_valid()) {
+              time_t current_ts = now.timestamp;
+              struct tm *tm_now = localtime(&current_ts);
+              int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+              unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+              
+              // Check for changes in sleep/wake times and recalculate if needed
+              unsigned int current_sleep_1 = id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60;
+              unsigned int current_wake_1 = id(wake_time_1).hour*3600 + id(wake_time_1).minute*60;
+              unsigned int current_sleep_2 = id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60;
+              unsigned int current_wake_2 = id(wake_time_2).hour*3600 + id(wake_time_2).minute*60;
+              unsigned int current_sleep_3 = id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60;
+              unsigned int current_wake_3 = id(wake_time_3).hour*3600 + id(wake_time_3).minute*60;
+              
+              // Check if any times have changed and we're in sleep mode
+              if (id(in_sleep_period)) {
+                bool times_changed = false;
+                unsigned int new_sleep_start = 0;
+                unsigned int new_sleep_end = 0;
+                
+                // Check timer 1 changes (overnight-aware)
+                if (current_sleep_1 != id(last_sleep_time_1) || current_wake_1 != id(last_wake_time_1)) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_1;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_1;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
+                    times_changed = true;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
+                  }
+                  id(last_sleep_time_1) = current_sleep_1;
+                  id(last_wake_time_1) = current_wake_1;
+                }
+                
+                // Check timer 2 changes (overnight-aware)
+                if (!times_changed && id(sleep_2_enable).state && 
+                    (current_sleep_2 != id(last_sleep_time_2) || current_wake_2 != id(last_wake_time_2))) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_2;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_2;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
+                    times_changed = true;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
+                  }
+                  id(last_sleep_time_2) = current_sleep_2;
+                  id(last_wake_time_2) = current_wake_2;
+                }
+                
+                // Check timer 3 changes (overnight-aware)
+                if (!times_changed && id(sleep_3_enable).state && 
+                    (current_sleep_3 != id(last_sleep_time_3) || current_wake_3 != id(last_wake_time_3))) {
+                  unsigned int sleep_ts_today = today_start_ts + current_sleep_3;
+                  unsigned int wake_ts_today = today_start_ts + current_wake_3;
+                  unsigned int cand_sleep = 0;
+                  unsigned int cand_wake = 0;
+                  if (wake_ts_today <= sleep_ts_today) {
+                    if (current_ts < wake_ts_today) {
+                      cand_sleep = sleep_ts_today - 86400;
+                      cand_wake = wake_ts_today;
+                    } else {
+                      cand_sleep = sleep_ts_today;
+                      cand_wake = wake_ts_today + 86400;
+                    }
+                  } else {
+                    cand_sleep = sleep_ts_today;
+                    cand_wake = wake_ts_today;
+                  }
+                  if (current_ts >= cand_sleep && current_ts < cand_wake) {
+                    times_changed = true;
+                    new_sleep_start = cand_sleep;
+                    new_sleep_end = cand_wake;
+                  }
+                  id(last_sleep_time_3) = current_sleep_3;
+                  id(last_wake_time_3) = current_wake_3;
+                }
+                
+                // Recalculate star display if times changed
+                if (times_changed) {
+                  id(total_duration_sec) = new_sleep_end - new_sleep_start;
+                  float elapsed = current_ts - new_sleep_start;
+                  float time_per_star = id(total_duration_sec) / 12.0;
+                  int sections_passed = elapsed / time_per_star;
+                  id(last_sections_passed) = sections_passed;
+                  
+                  for (int i = 0; i < 12; ++i) {
+                    id(star_visible)[i] = (i >= sections_passed);
+                  }
+                }
+              } else {
+                // Initialize last times when not in sleep mode
+                id(last_sleep_time_1) = current_sleep_1;
+                id(last_wake_time_1) = current_wake_1;
+                id(last_sleep_time_2) = current_sleep_2;
+                id(last_wake_time_2) = current_wake_2;
+                id(last_sleep_time_3) = current_sleep_3;
+                id(last_wake_time_3) = current_wake_3;
+              }
+              
+              bool currently_in_sleep = false;
+              unsigned int current_sleep_start = 0;
+              unsigned int current_sleep_end = 0;
+              
+              // Helper function to check if current time is within a sleep period
+              auto check_sleep_period = [&](unsigned int sleep_sec, unsigned int wake_sec, bool enabled) -> bool {
+                if (!enabled) return false;
+                
+                // Build candidate window taking into account periods that span midnight
+                unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+                unsigned int wake_ts_today = today_start_ts + wake_sec;
+                unsigned int candidate_sleep_ts = 0;
+                unsigned int candidate_wake_ts = 0;
+                
+                if (wake_ts_today <= sleep_ts_today) {
+                  // Overnight period
+                  if (current_ts < wake_ts_today) {
+                    // After midnight, before today's wake → period started yesterday
+                    candidate_sleep_ts = sleep_ts_today - 86400;
+                    candidate_wake_ts = wake_ts_today;
+                  } else {
+                    // Before midnight or after today's wake → next wake is tomorrow
+                    candidate_sleep_ts = sleep_ts_today;
+                    candidate_wake_ts = wake_ts_today + 86400;
+                  }
+                } else {
+                  // Same-day period
+                  candidate_sleep_ts = sleep_ts_today;
+                  candidate_wake_ts = wake_ts_today;
+                }
+                
+                // Check if current time is within this sleep period
+                if (current_ts >= candidate_sleep_ts && current_ts < candidate_wake_ts) {
+                  currently_in_sleep = true;
+                  current_sleep_start = candidate_sleep_ts;
+                  current_sleep_end = candidate_wake_ts;
+                  return true;
+                }
+                
+                return false;
+              };
+              
+              // Check all enabled sleep timers
+              check_sleep_period(
+                id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60,
+                id(wake_time_1).hour*3600 + id(wake_time_1).minute*60,
+                true  // Timer 1 is always enabled
+              );
+              
+              if (!currently_in_sleep) {
+                check_sleep_period(
+                  id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60,
+                  id(wake_time_2).hour*3600 + id(wake_time_2).minute*60,
+                  id(sleep_2_enable).state
+                );
+              }
+              
+              if (!currently_in_sleep) {
+                check_sleep_period(
+                  id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60,
+                  id(wake_time_3).hour*3600 + id(wake_time_3).minute*60,
+                  id(sleep_3_enable).state
+                );
+              }
+              
+              // Handle page switching based on sleep status
+              if (currently_in_sleep && !id(in_sleep_period)) {
+                // Just entered sleep period
+                id(in_sleep_period) = true;
+                id(current_page) = "sleep_page";
+                id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_NONE, 0);
+                // Ensure sun overlay on sleep page is hidden (kept hidden by default)
+                
+                // Clear manually turned off flag to allow screen to turn on for sleep period
+                id(manually_turned_off) = false;
+                
+                // Calculate and show appropriate stars
+                id(total_duration_sec) = current_sleep_end - current_sleep_start;
+                float elapsed = current_ts - current_sleep_start;
+                float time_per_star = id(total_duration_sec) / 12.0;
+                int sections_passed = elapsed / time_per_star;
+                id(last_sections_passed) = sections_passed;
+                
+                for (int i = 0; i < 12; ++i) {
+                  id(star_visible)[i] = (i >= sections_passed);
+                }
+              } else if (!currently_in_sleep && id(in_sleep_period)) {
+                // Just exited sleep period
+                id(in_sleep_period) = false;
+                id(current_page) = "sun_page";
+                id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+                
+                // Clear manually turned off flag to allow screen to turn on for wake period
+                id(manually_turned_off) = false;
+                
+                // Hide all stars
+                for (int i = 0; i < 12; ++i) {
+                  id(star_visible)[i] = false;
+                }
+                id(last_sections_passed) = -1;
+                
+                // Start screen off timer
+                id(wake_screen_start_time) = current_ts;
+                id(screen_off_timer_active) = true;
+              } else if (currently_in_sleep && id(in_sleep_period)) {
+                // Update star display for current sleep period
+                float elapsed = current_ts - current_sleep_start;
+                float time_per_star = id(total_duration_sec) / 12.0;
+                int sections_passed = elapsed / time_per_star;
+                
+                if (sections_passed != id(last_sections_passed)) {
+                  id(last_sections_passed) = sections_passed;
+                  for (int i = 0; i < 12; ++i) {
+                    id(star_visible)[i] = (i >= sections_passed);
+                  }
+                }
+              }
+            }
+          }
+      - lvgl.label.update:
+          id: startup_label
+          text: !lambda |-
+            std::string dots = "";
+            for (int i = 0; i < id(init_dots_count); i++) {
+              dots += ".";
+            }
+            return "Initializing" + dots;
+      - lvgl.label.update:
+          id: time_label_sun
+          text: !lambda |-
+            if (id(sntp_time).now().is_valid()) {
+              char buf[16];
+              time_t now_ts = id(sntp_time).now().timestamp;
+              struct tm *tm_info = localtime(&now_ts);
+              strftime(buf, sizeof(buf), "%I:%M%p", tm_info);
+              return std::string(buf);
+            } else {
+              return std::string("--:--");
+            }
+      - lvgl.label.update:
+          id: time_label_sleep
+          text: !lambda |-
+            if (id(sntp_time).now().is_valid()) {
+              char buf[16];
+              time_t now_ts = id(sntp_time).now().timestamp;
+              struct tm *tm_info = localtime(&now_ts);
+              strftime(buf, sizeof(buf), "%I:%M%p", tm_info);
+              return std::string(buf);
+            } else {
+              return std::string("--:--");
+            }
+      - lambda: |-
+          // Screen off timer logic
+          if (id(screen_off_timer_active)) {
+            auto now = id(sntp_time).now();
+            if (!now.is_valid()) return;
+            unsigned int delay_seconds = id(screen_off_delay).state * 3600;
+            unsigned int target_time = id(wake_screen_start_time) + delay_seconds;
+            if (now.timestamp >= target_time) {
+              id(screen_off).execute();
+            }
+          }
+
+          // No wake transition blending; immediate page and brightness handling
+          
+          // IP display timer logic
+          if (id(ip_display_active)) {
+            auto now = millis();
+            if (now - id(ip_display_start_time) >= 10000) {
+              id(ip_display_active) = false;
+            }
+          }
+      # Show/hide each star explicitly
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[0];'
+          then:
+            - lvgl.widget.show: star_0
+          else:
+            - lvgl.widget.hide: star_0
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[1];'
+          then:
+            - lvgl.widget.show: star_1
+          else:
+            - lvgl.widget.hide: star_1
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[2];'
+          then:
+            - lvgl.widget.show: star_2
+          else:
+            - lvgl.widget.hide: star_2
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[3];'
+          then:
+            - lvgl.widget.show: star_3
+          else:
+            - lvgl.widget.hide: star_3
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[4];'
+          then:
+            - lvgl.widget.show: star_4
+          else:
+            - lvgl.widget.hide: star_4
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[5];'
+          then:
+            - lvgl.widget.show: star_5
+          else:
+            - lvgl.widget.hide: star_5
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[6];'
+          then:
+            - lvgl.widget.show: star_6
+          else:
+            - lvgl.widget.hide: star_6
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[7];'
+          then:
+            - lvgl.widget.show: star_7
+          else:
+            - lvgl.widget.hide: star_7
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[8];'
+          then:
+            - lvgl.widget.show: star_8
+          else:
+            - lvgl.widget.hide: star_8
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[9];'
+          then:
+            - lvgl.widget.show: star_9
+          else:
+            - lvgl.widget.hide: star_9
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[10];'
+          then:
+            - lvgl.widget.show: star_10
+          else:
+            - lvgl.widget.hide: star_10
+      - if:
+          condition:
+            lambda: 'return id(star_visible)[11];'
+          then:
+            - lvgl.widget.show: star_11
+          else:
+            - lvgl.widget.hide: star_11
+      # Show/hide IP labels
+      - if:
+          condition:
+            lambda: 'return id(ip_display_active);'
+          then:
+            - lambda: |-
+                auto ip = id(ip_address).get_state();
+                if (ip.empty()) {
+                  ip = "No IP";
+                }
+            - lvgl.label.update:
+                id: ip_label_sun
+                text: !lambda "return id(ip_address).get_state().empty() ? std::string(\"No IP\") : id(ip_address).get_state();"
+            - lvgl.label.update:
+                id: ip_label_sleep
+                text: !lambda "return id(ip_address).get_state().empty() ? std::string(\"No IP\") : id(ip_address).get_state();"
+            - lvgl.widget.show: ip_label_sun
+            - lvgl.widget.show: ip_label_sleep
+            - logger.log: "Showing IP labels"
+          else:
+            - lvgl.widget.hide: ip_label_sun
+            - lvgl.widget.hide: ip_label_sleep
+      - if:
+          condition:
+            lambda: 'return id(in_sleep_period);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return !id(manually_turned_off);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+            - if:
+                condition:
+                  switch.is_on: auto_ambient_lighting
+                then:
+                  - light.turn_on:
+                      id: led
+                      red: 0.0
+                      green: 0.5
+                      blue: 1.0
+                      brightness: 1.0
+          else:
+            - if:
+                condition:
+                  lambda: 'return !id(manually_turned_off);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(wake_brightness).state / 100.0;"
+            - if:
+                condition:
+                  switch.is_on: auto_ambient_lighting
+                then:
+                  - light.turn_on:
+                      id: led
+                      red: 1.0
+                      green: 0.8
+                      blue: 0.17
+                      brightness: 1.0
+
+# --- Scripts ---
+script:
+  - id: show_startup
+    then:
+      - lvgl.page.show: startup_page
+      - logger.log: "Showing startup page"
+      - lambda: |-
+          id(startup_time) = millis();
+  - id: screen_sleep
+    then:
+      - lambda: |-
+          // Set sleep period state and show sleep page
+          id(in_sleep_period) = true;
+          id(current_page) = "sleep_page";
+          id(lvgl_comp).show_page(3, LV_SCR_LOAD_ANIM_NONE, 0);
+          // Clear manually turned off flag to allow screen to turn on for sleep period
+          id(manually_turned_off) = false;
+      - light.turn_on:
+          id: screen_brightness
+          brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+      - if:
+          condition:
+            switch.is_on: auto_ambient_lighting
+          then:
+            - light.turn_on:
+                id: led
+                red: 0.0
+                green: 0.5
+                blue: 1.0
+                brightness: 1.0
+      - lambda: |-
+          id(screen_off_timer_active) = false;
+          id(backlight_off) = false;
+          
+          // Calculate star display for manual sleep trigger
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            time_t current_ts = now.timestamp;
+            struct tm *tm_now = localtime(&current_ts);
+            int seconds_since_midnight_now = tm_now->tm_hour * 3600 + tm_now->tm_min * 60 + tm_now->tm_sec;
+            unsigned int today_start_ts = current_ts - seconds_since_midnight_now;
+            
+            // Find the current sleep period (overnight-aware)
+            unsigned int sleep_start = 0;
+            unsigned int sleep_end = 0;
+            auto compute_window = [&](unsigned int sleep_sec, unsigned int wake_sec) {
+              unsigned int sleep_ts_today = today_start_ts + sleep_sec;
+              unsigned int wake_ts_today = today_start_ts + wake_sec;
+              unsigned int cand_sleep = 0;
+              unsigned int cand_wake = 0;
+              if (wake_ts_today <= sleep_ts_today) {
+                if (current_ts < wake_ts_today) {
+                  cand_sleep = sleep_ts_today - 86400;
+                  cand_wake = wake_ts_today;
+                } else {
+                  cand_sleep = sleep_ts_today;
+                  cand_wake = wake_ts_today + 86400;
+                }
+              } else {
+                cand_sleep = sleep_ts_today;
+                cand_wake = wake_ts_today;
+              }
+              return std::pair<unsigned int, unsigned int>(cand_sleep, cand_wake);
+            };
+            
+            // Check timer 1 (always enabled)
+            {
+              auto w = compute_window(id(sleep_time_1).hour*3600 + id(sleep_time_1).minute*60,
+                                      id(wake_time_1).hour*3600 + id(wake_time_1).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
+              }
+            }
+            
+            // Check timer 2 if enabled
+            if (sleep_start == 0 && id(sleep_2_enable).state) {
+              auto w = compute_window(id(sleep_time_2).hour*3600 + id(sleep_time_2).minute*60,
+                                      id(wake_time_2).hour*3600 + id(wake_time_2).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
+              }
+            }
+            
+            // Check timer 3 if enabled
+            if (sleep_start == 0 && id(sleep_3_enable).state) {
+              auto w = compute_window(id(sleep_time_3).hour*3600 + id(sleep_time_3).minute*60,
+                                      id(wake_time_3).hour*3600 + id(wake_time_3).minute*60);
+              if (current_ts >= w.first && current_ts < w.second) {
+                sleep_start = w.first;
+                sleep_end = w.second;
+              }
+            }
+            
+            // Update star display if we found a sleep period
+            if (sleep_start > 0) {
+              id(total_duration_sec) = sleep_end - sleep_start;
+              float elapsed = current_ts - sleep_start;
+              float time_per_star = id(total_duration_sec) / 12.0;
+              int sections_passed = elapsed / time_per_star;
+              id(last_sections_passed) = sections_passed;
+              
+              for (int i = 0; i < 12; ++i) {
+                id(star_visible)[i] = (i >= sections_passed);
+              }
+            }
+          }
+  - id: screen_wake
+    then:
+      - lambda: |-
+          // Only show sun page if not in startup phase and not currently in a sleep period
+          if (id(startup_phase) != "initializing" && id(startup_phase) != "setup" && !id(in_sleep_period)) {
+            id(lvgl_comp).show_page(2, LV_SCR_LOAD_ANIM_NONE, 0);
+            id(current_page) = "sun_page";
+            // Ensure sun overlay on sleep page remains hidden
+          }
+      - if:
+          condition:
+            lambda: 'return !id(manually_turned_off);'
+          then:
+            - light.turn_on:
+                id: screen_brightness
+                brightness: !lambda "return id(wake_brightness).state / 100.0;"
+      - if:
+          condition:
+            switch.is_on: auto_ambient_lighting
+          then:
+            - light.turn_on:
+                id: led
+                red: 1.0
+                green: 0.8
+                blue: 0.17
+                brightness: 1.0
+      - lambda: |-
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            id(wake_screen_start_time) = now.timestamp;
+            id(screen_off_timer_active) = true;
+          }
+          id(backlight_off) = false;
+  - id: screen_off
+    then:
+      - light.turn_off: screen_brightness
+      - light.turn_off: led
+      - lambda: |-
+          id(screen_off_timer_active) = false;
+          // Mark as manually turned off so periodic brightness logic doesn't turn it back on
+          id(backlight_off) = true;
+          id(manually_turned_off) = true;
+  - id: toggle_backlight
+    then:
+      - lambda: |-
+          if (id(backlight_off)) {
+            // Turn backlight on
+            id(backlight_off) = false;
+            id(manually_turned_off) = false;
+          } else {
+            // Turn backlight off
+            id(backlight_off) = true;
+            id(manually_turned_off) = true;
+          }
+      - if:
+          condition:
+            lambda: 'return id(backlight_off);'
+          then:
+            - light.turn_off: screen_brightness
+            - if:
+                condition:
+                  switch.is_on: auto_ambient_lighting
+                then:
+                  - light.turn_off: led
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(in_sleep_period);'
+                then:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(sleep_brightness).state / 100.0;"
+                  - if:
+                      condition:
+                        switch.is_on: auto_ambient_lighting
+                      then:
+                        - light.turn_on:
+                            id: led
+                            red: 0.0
+                            green: 0.5
+                            blue: 1.0
+                            brightness: 1.0
+                else:
+                  - light.turn_on:
+                      id: screen_brightness
+                      brightness: !lambda "return id(wake_brightness).state / 100.0;"
+                  - if:
+                      condition:
+                        switch.is_on: auto_ambient_lighting
+                      then:
+                        - light.turn_on:
+                            id: led
+                            red: 1.0
+                            green: 0.8
+                            blue: 0.17
+                            brightness: 1.0
+
+# --- Brightness Controls ---
+output:
+  # Backlight LED
+  - platform: ledc
+    pin: GPIO42
+    id: backlight_output
+    inverted: true
+    frequency: 100Hz
+    min_power: 0.0
+    max_power: 1.0
+
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: Screen Brightness
+    id: screen_brightness
+    restore_mode: ALWAYS_ON
+    internal: True
+  - platform: esp32_rmt_led_strip
+    id: led
+    name: Ambient Lighting
+    icon: "mdi:television-ambient-light"
+    disabled_by_default: false
+    entity_category: config
+    pin: GPIO48
+    default_transition_length: 0s
+    chipset: WS2812
+    num_leds: 1
+    rgb_order: grb
+    web_server:
+      sorting_weight: 5
+      sorting_group_id: brightness_group
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          transition_length: 750ms
+          update_interval: 750ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - pulse:
+          name: "Fast Pulse"
+          transition_length: 100ms
+          update_interval: 100ms
+          min_brightness: 50%
+          max_brightness: 100%
+
+# --- Brightness Sliders ---
+number:
+  - platform: template
+    name: "Sleep Screen Brightness"
+    id: sleep_brightness
+    icon: "mdi:brightness-4"
+    optimistic: True
+    min_value: 0
+    max_value: 100
+    step: 1
+    restore_value: True
+    initial_value: 30
+    web_server:
+      sorting_weight: 2
+      sorting_group_id: brightness_group
+  - platform: template
+    name: "Wake Screen Brightness"
+    id: wake_brightness
+    icon: "mdi:brightness-7"
+    optimistic: True
+    min_value: 0
+    max_value: 100
+    step: 1
+    restore_value: True
+    initial_value: 100
+    web_server:
+      sorting_weight: 3
+      sorting_group_id: brightness_group
+  - platform: template
+    name: "Screen Off Delay (Hours)"
+    id: screen_off_delay
+    icon: "mdi:timer-off"
+    optimistic: True
+    min_value: 0.5
+    max_value: 24
+    step: 0.5
+    restore_value: True
+    initial_value: 0.5
+    web_server:
+      sorting_weight: 4
+      sorting_group_id: brightness_group
+
+button:
+  - platform: restart
+    name: "Restart Device"
+    id: restart_switch
+    icon: "mdi:restart"
+    entity_category: diagnostic
+    web_server:
+      sorting_weight: 6
+      sorting_group_id: diag_group
+
+switch:
+  - platform: gpio
+    name: Speaker Enable
+    icon: "mdi:speaker"
+    entity_category: config
+    pin: GPIO46
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    name: Sleep 2 Enabled
+    id: sleep_2_enable
+    icon: "mdi:weather-night"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_weight: 5
+      sorting_group_id: time_group
+  - platform: template
+    name: Sleep 3 Enabled
+    id: sleep_3_enable
+    icon: "mdi:weather-night"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_weight: 8
+      sorting_group_id: time_group
+  - platform: template
+    name: Auto Ambient Lighting
+    id: auto_ambient_lighting
+    icon: "mdi:lightbulb-auto"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_weight: 6
+      sorting_group_id: brightness_group
