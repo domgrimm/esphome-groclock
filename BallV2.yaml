@@ -78,6 +78,9 @@ web_server:
     - id: brightness_group
       name: "Brightness Controls"
       sorting_weight: 3
+    - id: audio_group
+      name: "Audio"
+      sorting_weight: 4
     - id: diag_group
       name: "Diagnostics"
       sorting_weight: 60
@@ -1793,6 +1796,24 @@ number:
     web_server:
       sorting_weight: 4
       sorting_group_id: brightness_group
+  - platform: template
+    name: "Audio Volume"
+    id: audio_volume
+    icon: "mdi:volume-high"
+    optimistic: True
+    min_value: 0
+    max_value: 100
+    step: 1
+    restore_value: True
+    initial_value: 50
+    web_server:
+      sorting_weight: 1
+      sorting_group_id: audio_group
+    on_value:
+      then:
+        - media_player.volume_set:
+            id: external_media_player
+            volume: !lambda "return x / 100.0;"
 
 button:
   - platform: restart
@@ -1803,6 +1824,17 @@ button:
     web_server:
       sorting_weight: 6
       sorting_group_id: diag_group
+  - platform: template
+    name: "Audio Play/Pause"
+    id: audio_play_pause_button
+    icon: "mdi:play-pause"
+    web_server:
+      sorting_weight: 3
+      sorting_group_id: audio_group
+    on_press:
+      then:
+        - media_player.toggle:
+            id: external_media_player
 
 switch:
   - platform: gpio
@@ -1838,3 +1870,22 @@ switch:
     web_server:
       sorting_weight: 6
       sorting_group_id: brightness_group
+  - platform: template
+    name: Audio Mute
+    id: audio_mute
+    icon: "mdi:volume-off"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_weight: 2
+      sorting_group_id: audio_group
+    on_turn_on:
+      then:
+        - media_player.volume_set:
+            id: external_media_player
+            volume: 0%
+    on_turn_off:
+      then:
+        - media_player.volume_set:
+            id: external_media_player
+            volume: !lambda "return id(audio_volume).state / 100.0;"
