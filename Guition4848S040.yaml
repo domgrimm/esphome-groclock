@@ -27,6 +27,13 @@ api:
 ota:
   - platform: esphome 
 
+# Add list components component
+external_components:
+  - source: github://andrewbackway/esphome-webserver-listcomponents
+    components: ["webserver_listcomponents"]
+
+webserver_listcomponents:
+
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
